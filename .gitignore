@@ -1,6 +1,10 @@
-*.i
+#cuda stuff
+*.if
 *.ii
 *.gpu
 *.ptx
 *.cubin
 *.fatbin
+
+#dev tools
+tools/
