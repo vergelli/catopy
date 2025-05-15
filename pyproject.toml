@@ -1,0 +1,21 @@
+[build-system]
+requires = ["scikit-build-core", "pybind11>=2.6"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "cato"
+version = "0.1.0"
+description = "Cuda Accelerated Tensor Operations"
+authors = [
+    {name = "Federico Vergelli", email = "federicocusot@gmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.10.16"
+
+[tool.scikit-build]
+build-dir = "build"
+cmake.verbose = true  # Te da más logs para entender errores
+
+[project.optional-dependencies]
+cuda = ["nvidia-cuda-runtime-cu12"]
