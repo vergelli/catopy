@@ -10,3 +10,6 @@
 tools/
 build/
 cato_Pkg/
+
+.vscode
+.idea
