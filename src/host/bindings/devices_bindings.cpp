@@ -10,5 +10,6 @@ void bind_devices(py::module_& m) {
     py::class_<Devices>(m, "Devices")
         .def(py::init<>())
         .def("get_devices", &Devices::get_devices)
-        .def("print_devices", &Devices::print_devices);
+        .def("print_devices", &Devices::print_devices)
+        .def("get_properties", &Devices::get_properties);
 }
