@@ -11,12 +11,40 @@ class Devices::Impl {
 public:
     Impl() {
         int device_count;
-        cudaGetDeviceCount(&device_count);
+        cudaError_t error = cudaGetDeviceCount(&device_count);
+
+        // Debugging: verificar si hay error en cudaGetDeviceCount
+        if (error != cudaSuccess) {
+            printf("ERROR: cudaGetDeviceCount failed: %s\n", cudaGetErrorString(error));
+            device_count = 0;
+        }
+
+        // Validación: device_count debe ser razonable
+        if (device_count < 0 || device_count > 100) {
+            printf("WARNING: device_count seems invalid: %d, setting to 0\n", device_count);
+            device_count = 0;
+        }
+
+        printf("DEBUG: cudaGetDeviceCount returned: %d\n", device_count);
+
         for (int i = 0; i < device_count; ++i) {
             cudaDeviceProp props;
-            cudaGetDeviceProperties(&props, i);
+            error = cudaGetDeviceProperties(&props, i);
+            
+            if (error != cudaSuccess) {
+                printf("ERROR: cudaGetDeviceProperties(%d) failed: %s\n", i, cudaGetErrorString(error));
+                continue;
+            }
+            
+            // Validación: verificar que las propiedades sean razonables
+            if (props.multiProcessorCount < 0 || props.multiProcessorCount > 1000) {
+                printf("WARNING: Device %d has invalid SMs: %d\n", i, props.multiProcessorCount);
+            }
+            
             devices_.push_back(props);
         }
+        
+        printf("DEBUG: Final device count: %zu\n", devices_.size());
     }
 
     std::unordered_map<std::string, std::string> get_properties(int device_id) const {
@@ -32,8 +60,6 @@ public:
         device_info["Max Threads Per Block"] = std::to_string(d.maxThreadsPerBlock);
         device_info["Max Threads Per MultiProcessor"] = std::to_string(d.maxThreadsPerMultiProcessor);
         device_info["Number of SMs"] = std::to_string(d.multiProcessorCount);
-        device_info["Clock Rate (KHz)"] = std::to_string(d.clockRate);
-        device_info["Memory Clock Rate (KHz)"] = std::to_string(d.memoryClockRate);
         device_info["Memory Bus Width (bits)"] = std::to_string(d.memoryBusWidth);
         device_info["L2 Cache Size"] = std::to_string(d.l2CacheSize);
         device_info["Max Grid Size"] = "(" +
