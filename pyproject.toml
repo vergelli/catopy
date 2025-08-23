@@ -1,6 +1,6 @@
 [build-system]
-requires = ["scikit-build-core", "pybind11>=2.6"]
-build-backend = "scikit_build_core.build"
+requires = ["meson-python", "pybind11>=2.6"]
+build-backend = "mesonpy"
 
 [project]
 name = "cato"
@@ -13,9 +13,8 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.10.16"
 
-[tool.scikit-build]
-build-dir = "build"
-cmake.verbose = true  # Te da más logs para entender errores
+[tool.meson-python]
+# Configuración específica para meson-python
 
 [project.optional-dependencies]
 cuda = ["nvidia-cuda-runtime-cu12"]
