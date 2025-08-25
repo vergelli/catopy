@@ -24,3 +24,9 @@ test = [
     "pytest-xdist>=3.0.0",
     "coverage>=7.0.0"
 ]
+dev = [
+    "setuptools>=68.0.0",  # Incluye distutils para Python 3.13+
+    "meson-python>=0.18.0",
+    "ninja",
+    "pybind11>=2.6"
+]
