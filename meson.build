@@ -22,6 +22,7 @@ add_project_arguments('-arch=sm_' + cuda_arch, language: 'cuda')
 
 # Incluir directorios
 incdirs = include_directories(
+  'include/core',
   'include/device',
   'include/host'
 )
@@ -30,6 +31,7 @@ incdirs = include_directories(
 sources = [
   'src/host/bindings/bindings.cpp',
   'src/host/bindings/devices_bindings.cpp',
+  'src/host/bindings/data_structures_bindings.cpp',
   'src/device/utils/devices.cu',
   'src/device/memOps/wrappers/caTensorInitValueWrapper.cu',
   'src/device/memOps/wrappers/caTensorInitZeroWrapper.cu'
