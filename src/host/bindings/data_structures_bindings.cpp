@@ -320,10 +320,30 @@ void bind_data_structures(py::module_& m) {
         std::cout << "DEBUG: params size: " << params.size() << std::endl;
         
         try {
-            std::cout << "DEBUG: About to use init_func_obj directly..." << std::endl;
-            // Use the object directly - don't call it without parameters
-            py::object result = init_func_obj;
-            std::cout << "DEBUG: Using init_func_obj directly, type: " << py::str(result.get_type()) << std::endl;
+            std::cout << "DEBUG: About to check if init_func_obj is callable..." << std::endl;
+            
+            py::object result;
+            // Check if the object is callable and handle accordingly
+            if (py::hasattr(init_func_obj, "__call__")) {
+                // Check if this is a function that expects parameters (like normal(), box_muller(), etc.)
+                // These functions expect (size, params) but we're passing (size, params) directly
+                std::cout << "DEBUG: init_func_obj is callable, checking if it's a parameterized function..." << std::endl;
+                
+                // Try to call it directly first (for functions like normal(), box_muller(), etc.)
+                try {
+                    result = init_func_obj;
+                    std::cout << "DEBUG: Using init_func_obj directly as parameterized function" << std::endl;
+                } catch (...) {
+                    // If that fails, try calling it without parameters
+                    std::cout << "DEBUG: Direct call failed, trying to call without parameters" << std::endl;
+                    result = init_func_obj();
+                }
+            } else {
+                std::cout << "DEBUG: init_func_obj is not callable, calling it without parameters" << std::endl;
+                result = init_func_obj();
+            }
+            
+            std::cout << "DEBUG: Result object type: " << py::str(result.get_type()) << std::endl;
             
             std::cout << "DEBUG: About to create caVector..." << std::endl;
             
