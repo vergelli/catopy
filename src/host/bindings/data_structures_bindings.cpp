@@ -238,11 +238,11 @@ void bind_data_structures(py::module_& m) {
             std::cout << "DEBUG: Python arange function called with size: " << size << ", start: " << start << ", stop: " << stop << ", step: " << step << std::endl;
             
             py::list result;
-            double current = start;
-            for (size_t i = 0; i < size && current < stop; ++i) {
+            
+            for (size_t i = 0; i < size; ++i) {
+                double current = start + (i * step);
                 result.append(current);
                 std::cout << "DEBUG: Appending arange value " << current << " to result[" << i << "]" << std::endl;
-                current += step;
             }
             
             std::cout << "DEBUG: Python arange function completed successfully" << std::endl;
