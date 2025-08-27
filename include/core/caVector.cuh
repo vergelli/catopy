@@ -277,6 +277,8 @@ public:
                 size_ * sizeof(T),
                 cudaMemcpyDeviceToHost
             ));
+            // Update flag to indicate data is now on HOST
+            is_on_gpu_ = false;
         }
     }
 
