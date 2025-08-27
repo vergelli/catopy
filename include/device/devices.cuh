@@ -18,10 +18,10 @@ public:
 
     // Retorna el número total de dispositivos disponibles
     size_t count() const;
-    
+
     // Retorna una instancia de Device para el ID especificado
     Device get_device(int device_id) const;
-    
+
     // Método para mostrar información de todos los dispositivos
     void show() const;
     
@@ -37,7 +37,7 @@ private:
 class Device {
 public:
     Device(int device_id, const cudaDeviceProp& props);
-    
+
     // Getters para propiedades del dispositivo
     int get_id() const;
     std::string get_name() const;
@@ -54,10 +54,10 @@ public:
     std::tuple<int, int, int> get_max_grid_size() const;
     std::tuple<int, int, int> get_max_threads_dim() const;
     size_t get_total_constant_memory() const;
-    
+
     // Método para mostrar información del dispositivo
     void show() const;
-    
+
     // Método para obtener todas las propiedades como mapa
     std::unordered_map<std::string, std::string> get_properties() const;
 
