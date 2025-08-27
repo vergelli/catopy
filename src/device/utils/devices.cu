@@ -55,8 +55,8 @@ std::unordered_map<std::string, std::string> Device::get_properties() const {
     device_info["Number of SMs"] = std::to_string(properties_.multiProcessorCount);
     device_info["Memory Bus Width (bits)"] = std::to_string(properties_.memoryBusWidth);
     device_info["L2 Cache Size"] = std::to_string(properties_.l2CacheSize);
-    
-    // Convertir tuples a strings formateados
+
+    //* Convertir tuples a strings formateados
     auto grid_size = get_max_grid_size();
     device_info["Max Grid Size"] = "(" + std::to_string(std::get<0>(grid_size)) + ", " +
                                    std::to_string(std::get<1>(grid_size)) + ", " +
@@ -98,7 +98,7 @@ public:
                 printf("ERROR: cudaGetDeviceProperties(%d) failed: %s\n", i, cudaGetErrorString(error));
                 continue;
             }
-            
+
             // Validación: verificar que las propiedades sean razonables
             if (props.multiProcessorCount < 0 || props.multiProcessorCount > 1000) {
                 printf("WARNING: Device %d has invalid SMs: %d\n", i, props.multiProcessorCount);
