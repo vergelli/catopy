@@ -58,6 +58,10 @@ help:
 	@echo "$(BOLD)$(YELLOW)  profile-quick$(RESET) - Profiling rápido (operaciones básicas)"
 	@echo "$(BOLD)$(YELLOW)  profile-full$(RESET) - Profiling completo (todas las trazas)"
 	@echo "$(BOLD)$(YELLOW)  profile-memory$(RESET) - Profiling enfocado en memoria"
+	@echo "$(BOLD)$(YELLOW)  profile-memory-transfer$(RESET) - Profiling específico para transferencias HOST↔GPU"
+	@echo "$(BOLD)$(YELLOW)  profile-auto-open$(RESET) - Profiling + abre Nsight Systems automáticamente"
+	@echo "$(BOLD)$(YELLOW)  profile-quick-open$(RESET) - Profiling rápido + abre Nsight Systems"
+	@echo "$(BOLD)$(YELLOW)  profile-full-open$(RESET) - Profiling completo + abre Nsight Systems"
 	@echo "$(BOLD)$(YELLOW)  profile-open$(RESET) - Abre último reporte de profiling"
 	@echo "$(BOLD)$(YELLOW)  profile-list$(RESET) - Lista reportes disponibles"
 	@echo "$(BOLD)$(YELLOW)  profile-clean$(RESET) - Limpia reportes de profiling"
@@ -76,18 +80,19 @@ help:
 	@echo "  4. Ejecutar tests → make test-frontend"
 	@echo "  5. Todo desde cero → make all"
 	@echo "  6. Todo + tests → make test-all"
-	@echo "  7. Profiling → make profile-full"
-	@echo "  8. Desarrollo completo → make dev-profile"
+	@echo "  7. Profiling → make profile-memory-transfer"
+	@echo "  8. Profiling + Nsight → make profile-auto-open"
+	@echo "  9. Desarrollo completo → make dev-profile"
 	@echo ""
 
 #* Comando principal - ejecuta todo el flujo
 all: config build install
-	@echo "$(BOLD)$(GREEN)✅ Todo completado exitosamente!$(RESET)"
+	@echo "$(BOLD)$(GREEN)Todo completado exitosamente!$(RESET)"
 	@echo "$(CYAN)El módulo $(BOLD)$(PROJECT_NAME)$(RESET)$(CYAN) está listo para usar.$(RESET)"
 
 #* Comando completo con tests
 test-all: config build install test-frontend test-backend test-profiling
-	@echo "$(BOLD)$(GREEN)✅ Todo completado exitosamente con tests!$(RESET)"
+	@echo "$(BOLD)$(GREEN)Todo completado exitosamente con tests!$(RESET)"
 	@echo "$(CYAN)El módulo $(BOLD)$(PROJECT_NAME)$(RESET)$(CYAN) está listo y probado.$(RESET)"
 
 #& =============================================================================
@@ -118,10 +123,10 @@ build:
 
 #* Instala el módulo compilado
 install:
-	@echo "$(BOLD)$(BLUE)📦 Instalando módulo compilado...$(RESET)"
+	@echo "$(BOLD)$(BLUE)Instalando módulo compilado...$(RESET)"
 	@echo "$(CYAN)Este paso instala el módulo compilado en tu entorno Python$(RESET)"
 	@$(VENV_ACTIVATE) && uv pip install .
-	@echo "$(BOLD)$(GREEN)✅ Instalación completada$(RESET)"
+	@echo "$(BOLD)$(GREEN)Instalación completada$(RESET)"
 	@echo "$(CYAN)El módulo $(BOLD)$(PROJECT_NAME)$(RESET)$(CYAN) está disponible globalmente en tu entorno virtual$(RESET)"
 
 
@@ -172,18 +177,18 @@ info:
 #& NOTAS IMPORTANTES
 #& =============================================================================
 #* 
-#* 📝 FLUJO DE DESARROLLO:
+#* FLUJO DE DESARROLLO:
 #*   1. make config    → Solo la primera vez o cambios de configuración
 #*   2. make build     → Después de cada cambio de código
 #*   3. make install   → Para probar el módulo
 #*   4. make all       → Para hacer todo desde cero
 #
-#* 📝 CUÁNDO USAR CADA COMANDO:
+#* CUÁNDO USAR CADA COMANDO:
 #*   - config: Cambias meson.build, pyproject.toml, o agregas/quitas archivos
 #*   - build:  Cambias código fuente (.cu, .cpp, .hpp, .cuh)
 #*   - install: Quieres probar el módulo en Python
 #
-#* 📝 PROBLEMAS COMUNES:
+#* PROBLEMAS COMUNES:
 #*   - Si build falla → Verifica que config se ejecutó correctamente
 #*   - Si install falla → Verifica que build se ejecutó correctamente
 #*   - Si hay errores de dependencias → Ejecuta make config
@@ -191,7 +196,7 @@ info:
 #* =============================================================================
 
 #& ===== PROFILING TARGETS =====================================================
-.PHONY: profile profile-quick profile-full profile-memory profile-kernels
+.PHONY: profile profile-quick profile-full profile-memory profile-kernels profile-memory-transfer profile-auto-open
 
 #* Create profiling directory
 profiling:
@@ -200,14 +205,14 @@ profiling:
 
 #* Quick profiling (basic CUDA operations)
 profile-quick: profiling
-	@echo "🚀 Quick profiling (basic CUDA operations)..."
+	@echo "Quick profiling (basic CUDA operations)..."
 	nsys profile --stats=true --trace=cuda,nvtx,osrt \
 		--output=$(PROFILING_PATH)/profile_quick_$(shell date +%Y%m%d_%H%M%S) \
 		python tests/profiling/test_basic_profiling.py
 
 #* Full profiling (all available traces)
 profile-full: profiling
-	@echo "🚀 Full profiling (all available traces)..."
+	@echo "Full profiling (all available traces)..."
 	nsys profile --stats=true --trace=cuda,nvtx,osrt,cudnn,cublas \
 		--cuda-memory-usage=true --cuda-graph-trace=node \
 		--cudabacktrace=all --backtrace=dwarf \
@@ -217,42 +222,78 @@ profile-full: profiling
 
 #* Memory-focused profiling
 profile-memory: profiling
-	@echo "🚀 Memory-focused profiling..."
+	@echo "Memory-focused profiling..."
 	nsys profile --stats=true --trace=cuda,nvtx,osrt \
 		--cuda-memory-usage=true --cuda-um-cpu-page-faults=true \
 		--cuda-um-gpu-page-faults=true \
 		--output=$(PROFILING_PATH)/profile_memory_$(shell date +%Y%m%d_%H%M%S) \
 		python tests/profiling/test_memory_profiling.py
 
+#* Memory transfer profiling (SPECIFIC FOR MEMORY TRANSFER VISUALIZATION)
+profile-memory-transfer: profiling
+	@echo "Memory Transfer Profiling (focused on HOST↔GPU transfers)..."
+	@echo "This will show:"
+	@echo "   - cudaMemcpy operations (HOST→GPU, GPU→HOST)"
+	@echo "   - Memory allocation patterns"
+	@echo "   - Transfer timing differences"
+	@echo "   - Lazy copy behavior"
+	nsys profile --stats=true --trace=cuda,nvtx,osrt \
+		--cuda-memory-usage=true \
+		--cuda-um-cpu-page-faults=true \
+		--cuda-um-gpu-page-faults=true \
+		--sample=cpu --cpuctxsw=process-tree \
+		--output=$(PROFILING_PATH)/profile_memory_transfer_$(shell date +%Y%m%d_%H%M%S) \
+		python tests/profiling/test_memory_transfer_visualization.py
+
 #* Kernel profiling (when we have CUDA kernels)
 profile-kernels: profiling
-	@echo "🚀 Kernel profiling..."
+	@echo "Kernel profiling..."
 	nsys profile --stats=true --trace=cuda,nvtx,osrt \
 		--cuda-memory-usage=true \
 		--output=$(PROFILING_PATH)/profile_kernels_$(shell date +%Y%m%d_%H%M%S) \
 		python tests/profiling/test_kernel_profiling.py
 
+#* AUTOMATIC WORKFLOW: Profile + Open Nsight Systems
+profile-auto-open: profile-memory-transfer
+	@echo "Profiling completed! Opening Nsight Systems automatically..."
+	@make profile-open
+
+#* AUTOMATIC WORKFLOW: Quick Profile + Open
+profile-quick-open: profile-quick
+	@echo "Quick profiling completed! Opening Nsight Systems automatically..."
+	@make profile-open
+
+#* AUTOMATIC WORKFLOW: Full Profile + Open
+profile-full-open: profile-full
+	@echo "Full profiling completed! Opening Nsight Systems automatically..."
+	@make profile-open
+
 #* Open latest profiling report
 profile-open:
-	@echo "📊 Opening latest profiling report..."
+	@echo "Opening latest profiling report..."
 	@latest_report=$$(ls -t $(PROFILING_PATH)/*.nsys-rep | head -1); \
 	if [ -n "$$latest_report" ]; then \
 		echo "Opening: $$latest_report"; \
+		echo "🔍 Look for these key operations in the timeline:"; \
+		echo "   - cudaMemcpy (HOST→GPU): Vector transfers to GPU"; \
+		echo "   - cudaMemcpy (GPU→HOST): Vector transfers back to HOST"; \
+		echo "   - Memory allocations: GPU buffer creation"; \
+		echo "   - NVTX markers: Test function boundaries"; \
 		nsys-ui "$$latest_report" & \
 	else \
-		echo "No profiling reports found. Run 'make profile-full' first."; \
+		echo "No profiling reports found. Run 'make profile-memory-transfer' first."; \
 	fi
 
 #* List all profiling reports
 profile-list:
-	@echo "📋 Available profiling reports:"
+	@echo "Available profiling reports:"
 	@ls -la $(PROFILING_PATH)/*.nsys-rep 2>/dev/null || echo "No reports found"
 
 #* Clean profiling reports
 profile-clean:
-	@echo "$(BOLD)$(YELLOW)🧹 Limpiando reportes de profiling...$(RESET)"
+	@echo "$(BOLD)$(YELLOW)Limpiando reportes de profiling...$(RESET)"
 	rm -rf $(PROFILING_PATH)/*.nsys-rep $(PROFILING_PATH)/*.sqlite
-	@echo "$(BOLD)$(GREEN)✅ Reportes de profiling limpiados$(RESET)"
+	@echo "$(BOLD)$(GREEN)Reportes de profiling limpiados$(RESET)"
 
 #& =============================================================================
 #& TESTING ORGANIZADO POR CAPAS
@@ -262,79 +303,79 @@ profile-clean:
 
 #* Frontend tests (Python bindings) - Incluye coverage
 test-frontend:
-	@echo "$(BOLD)$(BLUE)🧪 Ejecutando tests frontend (Python bindings)...$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests frontend (Python bindings)...$(RESET)"
 	@$(VENV_ACTIVATE) && python -m pytest tests/frontend/ -v --tb=short
-	@echo "$(BOLD)$(GREEN)✅ Tests frontend completados$(RESET)"
+	@echo "$(BOLD)$(GREEN)Tests frontend completados$(RESET)"
 
 #* Backend tests (C++/CUDA)
 test-backend:
-	@echo "$(BOLD)$(BLUE)🧪 Ejecutando tests backend (C++/CUDA)...$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests backend (C++/CUDA)...$(RESET)"
 	@$(VENV_ACTIVATE) && python -m pytest tests/backend/ -v --tb=short
-	@echo "$(BOLD)$(GREEN)✅ Tests backend completados$(RESET)"
+	@echo "$(BOLD)$(GREEN)Tests backend completados$(RESET)"
 
 #* Profiling tests (rendimiento Python)
 test-profiling:
-	@echo "$(BOLD)$(BLUE)🧪 Ejecutando tests de profiling...$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests de profiling...$(RESET)"
 	@$(VENV_ACTIVATE) && python -m pytest tests/profiling/ -v --tb=short
-	@echo "$(BOLD)$(GREEN)✅ Tests de profiling completados$(RESET)"
+	@echo "$(BOLD)$(GREEN)Tests de profiling completados$(RESET)"
 
 #* Integration tests (Robot Framework)
 test-integration:
-	@echo "$(BOLD)$(BLUE)🧪 Ejecutando tests de integración...$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests de integración...$(RESET)"
 	@echo "$(CYAN)Tests de integración con Robot Framework (futuro)$(RESET)"
-	@echo "$(YELLOW)⚠️  Comando no implementado aún$(RESET)"
+	@echo "$(YELLOW)Comando no implementado aún$(RESET)"
 
 #* Tests unitarios (alias para frontend)
 test-unit: test-frontend
-	@echo "$(CYAN)📝 test-unit es un alias para test-frontend$(RESET)"
+	@echo "$(CYAN)test-unit es un alias para test-frontend$(RESET)"
 
 #* Tests que requieren CUDA
 test-cuda:
-	@echo "$(BOLD)$(BLUE)🚀 Ejecutando tests que requieren CUDA...$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests que requieren CUDA...$(RESET)"
 	@$(VENV_ACTIVATE) && python -m pytest tests/ -v -m cuda --tb=short
-	@echo "$(BOLD)$(GREEN)✅ Tests CUDA completados$(RESET)"
+	@echo "$(BOLD)$(GREEN)Tests CUDA completados$(RESET)"
 
 #* Tests con reporte de cobertura
 test-coverage:
-	@echo "$(BOLD)$(BLUE)📊 Ejecutando tests con cobertura...$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests con cobertura...$(RESET)"
 	@$(VENV_ACTIVATE) && python -m pytest tests/frontend/ -v --cov=$(PROJECT_NAME) --cov-report=html --cov-report=term-missing
-	@echo "$(BOLD)$(GREEN)✅ Reporte de cobertura generado$(RESET)"
+	@echo "$(BOLD)$(GREEN)Reporte de cobertura generado$(RESET)"
 	@echo "$(CYAN)📁 Abre htmlcov/index.html para ver el reporte completo$(RESET)"
 
 #* Tests en modo watch
 test-watch:
-	@echo "$(BOLD)$(BLUE)👀 Ejecutando tests en modo watch...$(RESET)"
-	@echo "$(YELLOW)⚠️  Presiona Ctrl+C para detener$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests en modo watch...$(RESET)"
+	@echo "$(YELLOW)Presiona Ctrl+C para detener$(RESET)"
 	@$(VENV_ACTIVATE) && python -m pytest tests/frontend/ -v --tb=short --watch
 
 #* Tests rápidos (solo frontend, sin CUDA)
 test-fast:
 	@echo "$(BOLD)$(BLUE)⚡ Ejecutando tests rápidos...$(RESET)"
 	@$(VENV_ACTIVATE) && python -m pytest tests/frontend/ -v -m "not cuda" --tb=short
-	@echo "$(BOLD)$(GREEN)✅ Tests rápidos completados$(RESET)"
+	@echo "$(BOLD)$(GREEN)Tests rápidos completados$(RESET)"
 
 #* Tests específicos por archivo
 test-file:
-	@echo "$(BOLD)$(BLUE)📁 Ejecutando tests específicos...$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests específicos...$(RESET)"
 	@if [ -z "$(FILE)" ]; then \
-		echo "$(RED)❌ Error: Especifica el archivo con FILE=path/to/test.py$(RESET)"; \
+		echo "$(RED)Error: Especifica el archivo con FILE=path/to/test.py$(RESET)"; \
 		echo "$(YELLOW)Ejemplo: make test-file FILE=tests/frontend/test_basic_functionality.py$(RESET)"; \
 		exit 1; \
 	fi
 	@$(VENV_ACTIVATE) && python -m pytest $(FILE) -v --tb=short
-	@echo "$(BOLD)$(GREEN)✅ Tests del archivo completados$(RESET)"
+	@echo "$(BOLD)$(GREEN)Tests del archivo completados$(RESET)"
 
 #* Todos los tests organizados (alias para test-all principal)
 test-all-organized: test-frontend test-backend test-profiling
-	@echo "$(BOLD)$(GREEN)🎉 Todos los tests organizados completados!$(RESET)"
+	@echo "$(BOLD)$(GREEN)Todos los tests organizados completados!$(RESET)"
 
 #& ===== DEVELOPMENT WORKFLOW =====
 .PHONY: dev-test dev-profile
 
 # Development testing workflow
 dev-test: build test-all
-	@echo "✅ Development testing completed!"
+	@echo "Development testing completed!"
 
 # Development profiling workflow
 dev-profile: build profile-full profile-open
-	@echo "✅ Development profiling completed!"
+	@echo "Development profiling completed!"
