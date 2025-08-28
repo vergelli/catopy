@@ -42,7 +42,7 @@ public:
     /**
      * @brief Initialize the logger with default configuration
      * @param level Minimum log level to display
-     * @param log_to_file Whether to also log to file
+     * @param log_to_file Whether to also log to file (TODO: WIP - needs debugging)
      * @param log_file_path Path to log file (if logging to file)
      */
     static void initialize(Level level = Level::DEBUG, 
@@ -228,6 +228,7 @@ inline void Logger::initialize(Level level, bool log_to_file, const std::string&
         console_sink->set_pattern("[%H:%M:%S.%e] [%^%l%$] [%t] %v");
         sinks.push_back(console_sink);
 
+        // TODO: WIP - File logging sink creation needs debugging
         // File sink if requested
         if (log_to_file) {
             try {
