@@ -14,3 +14,7 @@ cato_Pkg/
 .vscode
 .idea
 cuda-keyring_1.0-1_all.deb
+# Archivos de CUDA del sistema
+*.deb
+cuda-keyring_*.deb
+/var/cache/apt/archives/*.deb
