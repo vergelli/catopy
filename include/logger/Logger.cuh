@@ -155,7 +155,7 @@ public:
      */
     static void cuda_complete(const char* operation) {
         if (is_initialized() && is_logging_enabled()) {
-            logger_->debug("✅ CUDA {} COMPLETE", operation);
+            logger_->debug("CUDA {} COMPLETE", operation);
         }
     }
 
@@ -164,7 +164,7 @@ public:
      */
     static void cuda_error(const char* operation, const char* error_msg) {
         if (is_initialized() && is_logging_enabled()) {
-            logger_->error("❌ CUDA {} ERROR: {}", operation, error_msg);
+            logger_->error("CUDA {} ERROR: {}", operation, error_msg);
         }
     }
 
@@ -173,7 +173,7 @@ public:
      */
     static void memory_alloc(const char* type, size_t size) {
         if (is_initialized() && is_logging_enabled()) {
-            logger_->debug("💾 MEMORY ALLOC {}: {} bytes", type, size);
+            logger_->debug("MEMORY ALLOC {}: {} bytes", type, size);
         }
     }
 
@@ -182,7 +182,7 @@ public:
      */
     static void memory_free(const char* type, size_t size) {
         if (is_initialized() && is_logging_enabled()) {
-            logger_->debug("🗑️  MEMORY FREE {}: {} bytes", type, size);
+            logger_->debug("MEMORY FREE {}: {} bytes", type, size);
         }
     }
 
@@ -191,7 +191,7 @@ public:
      */
     static void memory_transfer(const char* from, const char* to, size_t size) {
         if (is_initialized() && is_logging_enabled()) {
-            logger_->debug("🔄 MEMORY TRANSFER {} → {}: {} bytes", from, to, size);
+            logger_->debug("MEMORY TRANSFER {} → {}: {} bytes", from, to, size);
         }
     }
 
@@ -320,11 +320,11 @@ inline void Logger::enable_logging(bool enable) {
         if (enable) {
             // Modo DEBUG: mostrar todos los logs
             logger_->set_level(spdlog::level::debug);
-            logger_->info("🔍 DEBUG MODE ENABLED - All logging is now visible");
+            logger_->info(" DEBUG MODE ENABLED - All logging is now visible");
         } else {
             // Modo OFF: silenciar todos los logs
             logger_->set_level(spdlog::level::off);
-            logger_->info("🔇 LOGGING DISABLED - All logging is now silent");
+            logger_->info("LOGGING DISABLED - All logging is now silent");
         }
     }
 }
