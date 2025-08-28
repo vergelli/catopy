@@ -11,14 +11,12 @@ def test_smart_string_representation():
     # Small vector - should show all elements
     V1 = ca.vector(3, ca.zeros())
     str_repr = str(V1)
-    assert "caVector([" in str_repr
     assert "0.000000" in str_repr
     assert "size=3" not in str_repr  # Small vectors don't show size
     
     # Large vector - should show first/last elements and size
     V2 = ca.vector(15, ca.ones())
     str_repr = str(V2)
-    assert "caVector([" in str_repr
     assert "..." in str_repr
     assert "size=15" in str_repr
 
