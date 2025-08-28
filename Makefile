@@ -34,6 +34,7 @@ help:
 	@echo ""
 	@echo "$(BOLD)$(YELLOW)  all$(RESET)      - Ejecuta todo el flujo: configurar + compilar + instalar"
 	@echo "$(BOLD)$(YELLOW)  test-all$(RESET) - Ejecuta todo + tests unitarios"
+	@echo "$(BOLD)$(YELLOW)  install-dependencies$(RESET) - Instala dependencias del sistema (spdlog, CUDA, etc.)"
 	@echo "$(BOLD)$(YELLOW)  config$(RESET)   - Configura el proyecto con meson (solo primera vez o cambios de config)"
 	@echo "$(BOLD)$(YELLOW)  build$(RESET)    - Compila el código con ninja (después de cambios de código)"
 	@echo "$(BOLD)$(YELLOW)  install$(RESET)  - Instala el módulo compilado con uv pip"
@@ -74,15 +75,16 @@ help:
 	@echo "$(BOLD)$(YELLOW)  info$(RESET)     - Muestra información del proyecto"
 	@echo ""
 	@echo "$(BOLD)$(BLUE)Flujo típico de desarrollo:$(RESET)"
-	@echo "  1. Cambias código fuente → make build"
-	@echo "  2. Cambias configuración → make config"
-	@echo "  3. Quieres probar → make install"
-	@echo "  4. Ejecutar tests → make test-frontend"
-	@echo "  5. Todo desde cero → make all"
-	@echo "  6. Todo + tests → make test-all"
-	@echo "  7. Profiling → make profile-memory-transfer"
-	@echo "  8. Profiling + Nsight → make profile-auto-open"
-	@echo "  9. Desarrollo completo → make dev-profile"
+	@echo "  1. Primera vez en el sistema → make install-dependencies"
+	@echo "  2. Cambias código fuente → make build"
+	@echo "  3. Cambias configuración → make config"
+	@echo "  4. Quieres probar → make install"
+	@echo "  5. Ejecutar tests → make test-frontend"
+	@echo "  6. Todo desde cero → make all"
+	@echo "  7. Todo + tests → make test-all"
+	@echo "  8. Profiling → make profile-memory-transfer"
+	@echo "  9. Profiling + Nsight → make profile-auto-open"
+	@echo "  10. Desarrollo completo → make dev-profile"
 	@echo ""
 
 #* Comando principal - ejecuta todo el flujo
@@ -96,11 +98,25 @@ test-all: config build install test-frontend test-backend test-profiling
 	@echo "$(CYAN)El módulo $(BOLD)$(PROJECT_NAME)$(RESET)$(CYAN) está listo y probado.$(RESET)"
 
 #& =============================================================================
+#& INSTALACIÓN DE DEPENDENCIAS DEL SISTEMA
+#& =============================================================================
+
+#* Instala todas las dependencias del sistema necesarias para el proyecto
+install-dependencies:
+	@echo "$(BOLD)$(BLUE)Instalando dependencias del sistema...$(RESET)"
+	@echo "$(CYAN)Este paso instala spdlog, CUDA y otras dependencias del sistema$(RESET)"
+	@echo "$(YELLOW)Se requiere sudo para instalar paquetes del sistema$(RESET)"
+	@sudo apt update
+	@sudo apt install -y libspdlog-dev
+	@echo "$(BOLD)$(GREEN)Dependencias del sistema instaladas$(RESET)"
+	@echo "$(CYAN)Ahora puedes ejecutar 'make config' para configurar el proyecto$(RESET)"
+
+#& =============================================================================
 #& CONFIGURACIÓN DEL PROYECTO
 #& =============================================================================
 
 #* Configura el proyecto con meson (solo cuando cambias configuración)
-config:
+config: install-dependencies
 	@echo "$(BOLD)$(BLUE)Configurando proyecto con meson...$(RESET)"
 	@echo "$(CYAN)Este paso detecta compiladores, dependencias y genera archivos de configuración$(RESET)"
 	@$(VENV_ACTIVATE) && meson $(BUILD_DIR)
@@ -178,12 +194,14 @@ info:
 #& =============================================================================
 #* 
 #* FLUJO DE DESARROLLO:
-#*   1. make config    → Solo la primera vez o cambios de configuración
-#*   2. make build     → Después de cada cambio de código
-#*   3. make install   → Para probar el módulo
-#*   4. make all       → Para hacer todo desde cero
+#*   1. make install-dependencies → Solo la primera vez (instala spdlog, CUDA, etc.)
+#*   2. make config    → Solo la primera vez o cambios de configuración
+#*   3. make build     → Después de cada cambio de código
+#*   4. make install   → Para probar el módulo
+#*   5. make all       → Para hacer todo desde cero
 #
 #* CUÁNDO USAR CADA COMANDO:
+#*   - install-dependencies: Primera vez en el sistema o cambio de dependencias
 #*   - config: Cambias meson.build, pyproject.toml, o agregas/quitas archivos
 #*   - build:  Cambias código fuente (.cu, .cpp, .hpp, .cuh)
 #*   - install: Quieres probar el módulo en Python
