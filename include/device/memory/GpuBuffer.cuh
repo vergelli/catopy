@@ -20,6 +20,7 @@
 #include <cuda_runtime.h>
 #include <stdexcept>
 #include <iostream>
+#include "../../logger/Logger.cuh"
 
 template<typename T>
 class GpuBuffer {
@@ -38,34 +39,34 @@ public:
      * @endcode
      */
     GpuBuffer(size_t count) : element_count(count) {
-        std::cout << "DEBUG: GpuBuffer constructor called with count=" << count << std::endl;
-        std::cout << "DEBUG: sizeof(T) = " << sizeof(T) << std::endl;
-        std::cout << "DEBUG: Total bytes to allocate = " << (count * sizeof(T)) << std::endl;
+        Logger::debug("GpuBuffer constructor called with count= {}", count);
+        Logger::debug("sizeof(T) =  {}", sizeof(T));
+        Logger::debug("Total bytes to allocate =  {}", (count * sizeof(T)));
         
         if (count == 0) {
-            std::cout << "DEBUG: ERROR - count is 0" << std::endl;
+            Logger::debug("ERROR - count is 0");
             throw std::invalid_argument("GpuBuffer: count must be greater than 0");
         }
 
-        std::cout << "DEBUG: About to call cudaMalloc..." << std::endl;
+        Logger::debug("About to call cudaMalloc...");
         
         // Asignar memoria en GPU usando CUDA
         try {
             CHECK_CUDA_ERROR(cudaMalloc((void**)&gpu_pointer, count * sizeof(T)));
-            std::cout << "DEBUG: cudaMalloc completed successfully" << std::endl;
+            Logger::debug("cudaMalloc completed successfully");
         } catch (const std::exception& e) {
-            std::cout << "DEBUG: ERROR - cudaMalloc failed: " << e.what() << std::endl;
+            Logger::debug("ERROR - cudaMalloc failed:  {}", e.what());
             throw;
         }
 
-        std::cout << "DEBUG: gpu_pointer = " << gpu_pointer << std::endl;
+        Logger::debug("gpu_pointer =  {}", static_cast<void*>(gpu_pointer));
         
         if (gpu_pointer == nullptr) {
-            std::cout << "DEBUG: ERROR - gpu_pointer is null after cudaMalloc" << std::endl;
+            Logger::debug("ERROR - gpu_pointer is null after cudaMalloc");
             throw std::runtime_error("GpuBuffer: Failed to allocate GPU memory");
         }
         
-        std::cout << "DEBUG: GpuBuffer constructor completed successfully" << std::endl;
+        Logger::debug("GpuBuffer constructor completed successfully");
     }
 
     /**
@@ -75,27 +76,27 @@ public:
      * cuando el objeto sale de scope.
      */
     ~GpuBuffer() {
-        std::cout << "DEBUG: GpuBuffer destructor called" << std::endl;
-        std::cout << "DEBUG: gpu_pointer = " << gpu_pointer << std::endl;
-        std::cout << "DEBUG: element_count = " << element_count << std::endl;
+        Logger::debug("GpuBuffer destructor called");
+        Logger::debug("gpu_pointer =  {}", static_cast<void*>(gpu_pointer));
+        Logger::debug("element_count =  {}", element_count);
         
         if (gpu_pointer != nullptr) {
-            std::cout << "DEBUG: About to call cudaFree on gpu_pointer = " << gpu_pointer << std::endl;
+            Logger::debug("About to call cudaFree on gpu_pointer =  {}", static_cast<void*>(gpu_pointer));
             try {
                 CHECK_CUDA_ERROR(cudaFree(gpu_pointer));
-                std::cout << "DEBUG: cudaFree completed successfully" << std::endl;
+                Logger::debug("cudaFree completed successfully");
             } catch (const std::exception& e) {
-                std::cout << "DEBUG: ERROR - cudaFree failed: " << e.what() << std::endl;
+                Logger::debug("ERROR - cudaFree failed:  {}", e.what());
             } catch (...) {
-                std::cout << "DEBUG: ERROR - Unknown exception in cudaFree" << std::endl;
+                Logger::debug("ERROR - Unknown exception in cudaFree");
             }
             gpu_pointer = nullptr;
         } else {
-            std::cout << "DEBUG: gpu_pointer was already nullptr in destructor" << std::endl;
+            Logger::debug("gpu_pointer was already nullptr in destructor");
         }
         
-        std::cout << "DEBUG: About to exit GpuBuffer destructor" << std::endl;
-        std::cout << "DEBUG: GpuBuffer destructor completed" << std::endl;
+        Logger::debug("About to exit GpuBuffer destructor");
+        Logger::debug("GpuBuffer destructor completed");
     }
 
     /**

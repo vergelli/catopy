@@ -5,7 +5,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
-#include <iostream> // Added for debug prints
+#include "../logger/Logger.cuh"
 
 namespace py = pybind11;
 
@@ -40,69 +40,69 @@ void bind_data_structures(py::module_& m) {
     //& These return std::function objects that can be used directly
 
     m.def("zeros", []() { 
-        std::cout << "DEBUG: Python zeros() function called" << std::endl;
+        Logger::debug("Python zeros() function called");
 
         //& Return a Python function that returns a list of zeros
         return py::cpp_function([](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python zeros function called with size: " << size << std::endl;
+            Logger::debug("Python zeros function called with size:  {}", size);
 
             py::list result;
             for (size_t i = 0; i < size; ++i) {
                 result.append(0.0);
             }
 
-            std::cout << "DEBUG: Python zeros function completed successfully" << std::endl;
+            Logger::debug("Python zeros function completed successfully");
             return result;
         });
     }, "Create initialization function for zeros");
 
     m.def("ones", []() { 
-        std::cout << "DEBUG: Python ones() function called" << std::endl;
+        Logger::debug("Python ones() function called");
 
         //& Return a Python function that returns a list of ones
         return py::cpp_function([](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python ones function called with size: " << size << std::endl;
+            Logger::debug("Python ones function called with size:  {}", size);
 
             py::list result;
             for (size_t i = 0; i < size; ++i) {
                 result.append(1.0);
             }
 
-            std::cout << "DEBUG: Python ones function completed successfully" << std::endl;
+            Logger::debug("Python ones function completed successfully");
             return result;
         });
     }, "Create initialization function for ones");
 
     m.def("constant", [](double value) { 
-        std::cout << "DEBUG: Python constant(" << value << ") function called" << std::endl;
+        Logger::debug("Python constant({}) function called", value);
 
         //& Return a Python function that returns a list of constant values
         //& This function will be called directly by ca.vector()
         return py::cpp_function([value](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python constant function called with size: " << size << ", value: " << value << std::endl;
+            Logger::debug("Python constant function called with size: {}, value: {}", size, value);
 
             py::list result;
             for (size_t i = 0; i < size; ++i) {
                 result.append(value);
-                std::cout << "DEBUG: Appending value " << value << " to result[" << i << "]" << std::endl;
+                Logger::debug("Appending value {} to result[{}]", value, i);
             }
 
-            std::cout << "DEBUG: Python constant function completed successfully" << std::endl;
+            Logger::debug("Python constant function completed successfully");
             return result;
         });
     }, py::arg("value"), "Create initialization function for constant value");
 
     //& Random functions
     m.def("random", [](int seed = -1) { 
-        std::cout << "DEBUG: Python random(" << seed << ") function called" << std::endl;
+        Logger::debug("Python random({}) function called", seed);
 
         //& Return a Python function that returns a list of random values
         return py::cpp_function([seed](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python random function called with size: " << size << ", seed: " << seed << std::endl;
+            Logger::debug("Python random function called with size: {}, seed: {}", size, seed);
 
             // Simple random implementation
             std::srand(seed >= 0 ? seed : std::time(nullptr));
@@ -111,21 +111,21 @@ void bind_data_structures(py::module_& m) {
             for (size_t i = 0; i < size; ++i) {
                 double random_value = static_cast<double>(std::rand()) / RAND_MAX;
                 result.append(random_value);
-                std::cout << "DEBUG: Appending random value " << random_value << " to result[" << i << "]" << std::endl;
+                Logger::debug("Appending random value {} to result[{}]", random_value, i);
             }
 
-            std::cout << "DEBUG: Python random function completed successfully" << std::endl;
+            Logger::debug("Python random function completed successfully");
             return result;
         });
     }, py::arg("seed") = -1, "Create initialization function for random values");
 
     m.def("uniform", [](double min = 0.0, double max = 1.0, int seed = -1) { 
-        std::cout << "DEBUG: Python uniform(" << min << ", " << max << ", " << seed << ") function called" << std::endl;
+        Logger::debug("Python uniform({}, {}, {}) function called", min, max, seed);
 
         //& Return a Python function that returns a list of uniform random values
         return py::cpp_function([min, max, seed](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python uniform function called with size: " << size << ", min: " << min << ", max: " << max << ", seed: " << seed << std::endl;
+            Logger::debug("Python uniform function called with size: {}, min: {}, max: {}, seed: {}", size, min, max, seed);
 
             std::srand(seed >= 0 ? seed : std::time(nullptr));
             double range = max - min;
@@ -134,22 +134,22 @@ void bind_data_structures(py::module_& m) {
             for (size_t i = 0; i < size; ++i) {
                 double uniform_value = min + (static_cast<double>(std::rand()) / RAND_MAX) * range;
                 result.append(uniform_value);
-                std::cout << "DEBUG: Appending uniform value " << uniform_value << " to result[" << i << "]" << std::endl;
+                Logger::debug("Appending uniform value {} to result[{}]", uniform_value, i);
             }
 
-            std::cout << "DEBUG: Python uniform function completed successfully" << std::endl;
+            Logger::debug("Python uniform function completed successfully");
             return result;
         });
     }, py::arg("min") = 0.0, py::arg("max") = 1.0, py::arg("seed") = -1,
        "Create initialization function for uniform distribution");
 
     m.def("normal", [](double mean = 0.0, double std = 1.0, int seed = -1) { 
-        std::cout << "DEBUG: Python normal(" << mean << ", " << std << ", " << seed << ") function called" << std::endl;
+        Logger::debug("Python normal({}, {}, {}) function called", mean, std, seed);
 
         //& Return a Python function that returns a list of normal random values
         return py::cpp_function([mean, std, seed](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python normal function called with size: " << size << ", mean: " << mean << ", std: " << std << ", seed: " << seed << std::endl;
+            Logger::debug("Python normal function called with size: {}, mean: {}, std: {}, seed: {}", size, mean, std, seed);
 
             std::srand(seed >= 0 ? seed : std::time(nullptr));
 
@@ -163,22 +163,22 @@ void bind_data_structures(py::module_& m) {
                 double normal_value = mean + std * z;
 
                 result.append(normal_value);
-                std::cout << "DEBUG: Appending normal value " << normal_value << " to result[" << i << "]" << std::endl;
+                Logger::debug("Appending normal value {} to result[{}]", normal_value, i);
             }
 
-            std::cout << "DEBUG: Python normal function completed successfully" << std::endl;
+            Logger::debug("Python normal function completed successfully");
             return result;
         });
     }, py::arg("mean") = 0.0, py::arg("std") = 1.0, py::arg("seed") = -1,
        "Create initialization function for normal distribution");
 
     m.def("box_muller", [](double mean = 0.0, double std = 1.0, int seed = -1) { 
-        std::cout << "DEBUG: Python box_muller(" << mean << ", " << std << ", " << seed << ") function called" << std::endl;
+        Logger::debug("Python box_muller({}, {}, {}) function called", mean, std, seed);
 
         //& Return a Python function that returns a list of Box-Muller random values
         return py::cpp_function([mean, std, seed](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python box_muller function called with size: " << size << ", mean: " << mean << ", std: " << std << ", seed: " << seed << std::endl;
+            Logger::debug("Python box_muller function called with size: {}, mean: {}, std: {}, seed: {}", size, mean, std, seed);
 
             std::srand(seed >= 0 ? seed : std::time(nullptr));
 
@@ -193,71 +193,71 @@ void bind_data_structures(py::module_& m) {
 
                 double value0 = mean + std * z0;
                 result.append(value0);
-                std::cout << "DEBUG: Appending Box-Muller value " << value0 << " to result[" << i << "]" << std::endl;
+                Logger::debug("Appending Box-Muller value {} to result[{}]", value0, i);
 
                 if (i + 1 < size) {
                     double value1 = mean + std * z1;
                     result.append(value1);
-                    std::cout << "DEBUG: Appending Box-Muller value " << value1 << " to result[" << i + 1 << "]" << std::endl;
+                    Logger::debug("Appending Box-Muller value {} to result[{}]", value1, i + 1);
                 }
             }
 
-            std::cout << "DEBUG: Python box_muller function completed successfully" << std::endl;
+            Logger::debug("Python box_muller function completed successfully");
             return result;
         });
     }, py::arg("mean") = 0.0, py::arg("std") = 1.0, py::arg("seed") = -1,
        "Create initialization function for Box-Muller distribution");
 
     m.def("sequence", [](double start = 0.0, double step = 1.0) { 
-        std::cout << "DEBUG: Python sequence(" << start << ", " << step << ") function called" << std::endl;
+        Logger::debug("Python sequence({}, {}) function called", start, step);
 
         //& Return a Python function that returns a list of sequence values
         return py::cpp_function([start, step](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python sequence function called with size: " << size << ", start: " << start << ", step: " << step << std::endl;
+            Logger::debug("Python sequence function called with size: {}, start: {}, step: {}", size, start, step);
 
             py::list result;
             for (size_t i = 0; i < size; ++i) {
                 double sequence_value = start + i * step;
                 result.append(sequence_value);
-                std::cout << "DEBUG: Appending sequence value " << sequence_value << " to result[" << i << "]" << std::endl;
+                Logger::debug("Appending sequence value {} to result[{}]", sequence_value, i);
             }
 
-            std::cout << "DEBUG: Python sequence function completed successfully" << std::endl;
+            Logger::debug("Python sequence function completed successfully");
             return result;
         });
     }, py::arg("start") = 0.0, py::arg("step") = 1.0,
        "Create initialization function for arithmetic sequence");
 
     m.def("arange", [](double start = 0.0, double stop = 1.0, double step = 1.0) { 
-        std::cout << "DEBUG: Python arange(" << start << ", " << stop << ", " << step << ") function called" << std::endl;
+        Logger::debug("Python arange({}, {}, {}) function called", start, stop, step);
 
         //& Return a Python function that returns a list of arange values
         return py::cpp_function([start, stop, step](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python arange function called with size: " << size << ", start: " << start << ", stop: " << stop << ", step: " << step << std::endl;
+            Logger::debug("Python arange function called with size: {}, start: {}, stop: {}, step: {}", size, start, stop, step);
 
             py::list result;
 
             for (size_t i = 0; i < size; ++i) {
                 double current = start + (i * step);
                 result.append(current);
-                std::cout << "DEBUG: Appending arange value " << current << " to result[" << i << "]" << std::endl;
+                Logger::debug("Appending arange value {} to result[{}]", current, i);
             }
 
-            std::cout << "DEBUG: Python arange function completed successfully" << std::endl;
+            Logger::debug("Python arange function completed successfully");
             return result;
         });
     }, py::arg("start") = 0.0, py::arg("stop") = 1.0, py::arg("step") = 1.0,
        "Create initialization function for arange-like sequence");
 
     m.def("mathematical", [](const std::string& func_name = "sin") { 
-        std::cout << "DEBUG: Python mathematical('" << func_name << "') function called" << std::endl;
+        Logger::debug("Python mathematical('{}') function called", func_name);
 
         //& Return a Python function that returns a list of mathematical function values
         return py::cpp_function([func_name](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; //! Unused parameter
-            std::cout << "DEBUG: Python mathematical function called with size: " << size << ", func_name: " << func_name << std::endl;
+            Logger::debug("Python mathematical function called with size: {}, func_name: {}", size, func_name);
 
             py::list result;
             for (size_t i = 0; i < size; ++i) {
@@ -279,22 +279,22 @@ void bind_data_structures(py::module_& m) {
                 }
 
                 result.append(math_value);
-                std::cout << "DEBUG: Appending mathematical value " << math_value << " (func=" << func_name << ", x=" << x << ") to result[" << i << "]" << std::endl;
+                Logger::debug("Appending mathematical value {} (func={}, x={}) to result[{}]", math_value, func_name, x, i);
             }
 
-            std::cout << "DEBUG: Python mathematical function completed successfully" << std::endl;
+            Logger::debug("Python mathematical function completed successfully");
             return result;
         });
     }, py::arg("func_name") = "sin",
        "Create initialization function for mathematical functions");
 
     m.def("sine", [](double frequency = 1.0, double amplitude = 1.0, double phase = 0.0) { 
-        std::cout << "DEBUG: Python sine(" << frequency << ", " << amplitude << ", " << phase << ") function called" << std::endl;
+        Logger::debug("Python sine({}, {}, {}) function called", frequency, amplitude, phase);
 
         //& Return a Python function that returns a list of sine wave values
         return py::cpp_function([frequency, amplitude, phase](size_t size, const std::vector<double>& params) -> py::list {
             (void)params; // Unused parameter
-            std::cout << "DEBUG: Python sine function called with size: " << size << ", frequency: " << frequency << ", amplitude: " << amplitude << ", phase: " << phase << std::endl;
+            Logger::debug("Python sine function called with size: {}, frequency: {}, amplitude: {}, phase: {}", size, frequency, amplitude, phase);
 
             py::list result;
             for (size_t i = 0; i < size; ++i) {
@@ -302,10 +302,10 @@ void bind_data_structures(py::module_& m) {
                 double sine_value = amplitude * std::sin(2.0 * M_PI * frequency * x + phase);
 
                 result.append(sine_value);
-                std::cout << "DEBUG: Appending sine value " << sine_value << " (f=" << frequency << ", A=" << amplitude << ", φ=" << phase << ", x=" << x << ") to result[" << i << "]" << std::endl;
+                Logger::debug("Appending sine value {} (f={}, A={}, φ={}, x={}) to result[{}]", sine_value, frequency, amplitude, phase, x, i);
             }
 
-            std::cout << "DEBUG: Python sine function completed successfully" << std::endl;
+            Logger::debug("Python sine function completed successfully");
             return result;
         });
     }, py::arg("frequency") = 1.0, py::arg("amplitude") = 1.0, py::arg("phase") = 0.0,
@@ -315,45 +315,45 @@ void bind_data_structures(py::module_& m) {
 
     m.def("vector", [](size_t size, py::object init_func_obj, 
                        const std::vector<double>& params = std::vector<double>{}) {
-        std::cout << "DEBUG: Python vector() function called with size=" << size << std::endl;
-        std::cout << "DEBUG: init_func_obj type: " << py::str(init_func_obj.get_type()) << std::endl;
-        std::cout << "DEBUG: params size: " << params.size() << std::endl;
+        Logger::debug("Python vector() function called with size= {}", size);
+        Logger::debug("init_func_obj type:  {}", py::str(init_func_obj.get_type()).cast<std::string>());
+        Logger::debug("params size:  {}", params.size());
 
         try {
-            std::cout << "DEBUG: About to check if init_func_obj is callable..." << std::endl;
+            Logger::debug("About to check if init_func_obj is callable...");
 
             py::object result;
             //& Check if the object is callable and handle accordingly
             if (py::hasattr(init_func_obj, "__call__")) {
                 //& Check if this is a function that expects parameters (like normal(), box_muller(), etc.)
                 //& These functions expect (size, params) but we're passing (size, params) directly
-                std::cout << "DEBUG: init_func_obj is callable, checking if it's a parameterized function..." << std::endl;
+                Logger::debug("init_func_obj is callable, checking if it's a parameterized function...");
 
                 //& Try to call it directly first (for functions like normal(), box_muller(), etc.)
                 try {
                     result = init_func_obj;
-                    std::cout << "DEBUG: Using init_func_obj directly as parameterized function" << std::endl;
+                    Logger::debug("Using init_func_obj directly as parameterized function");
                 } catch (...) {
                     //& If that fails, try calling it without parameters
-                    std::cout << "DEBUG: Direct call failed, trying to call without parameters" << std::endl;
+                    Logger::debug("Direct call failed, trying to call without parameters");
                     result = init_func_obj();
                 }
             } else {
-                std::cout << "DEBUG: init_func_obj is not callable, calling it without parameters" << std::endl;
+                Logger::debug("init_func_obj is not callable, calling it without parameters");
                 result = init_func_obj();
             }
 
-            std::cout << "DEBUG: Result object type: " << py::str(result.get_type()) << std::endl;
+            Logger::debug("Result object type:  {}", py::str(result.get_type()).cast<std::string>());
 
-            std::cout << "DEBUG: About to create caVector..." << std::endl;
+            Logger::debug("About to create caVector...");
 
             //& Create the vector directly using the result object
             //& This avoids std::function conversion completely
-            std::cout << "DEBUG: Creating caVector directly..." << std::endl;
+            Logger::debug("Creating caVector directly...");
 
             //& Use a lambda that calls the Python function and copies data back
             auto init_lambda = [result](double* data, size_t size, const std::vector<double>& params) {
-                std::cout << "DEBUG: Direct lambda called with data=" << data << ", size=" << size << std::endl;
+                Logger::debug("Direct lambda called with data={}, size={}", static_cast<void*>(data), size);
 
                 //& Call the Python function directly
                 py::gil_scoped_acquire gil;  //! Ensure Python GIL is held
@@ -365,25 +365,25 @@ void bind_data_structures(py::module_& m) {
                 //& Copy data from Python list to C++ array
                 for (size_t i = 0; i < size; ++i) {
                     data[i] = py::cast<double>(py_data[i]);
-                    std::cout << "DEBUG: Copied data[" << i << "] = " << data[i] << std::endl;
+                    Logger::debug("Copied data[{}] = {}", i, data[i]);
                 }
 
-                std::cout << "DEBUG: Direct lambda completed successfully" << std::endl;
+                Logger::debug("Direct lambda completed successfully");
             };
 
             caVector<double> vec(size, init_lambda, params);
-            std::cout << "DEBUG: caVector created successfully" << std::endl;
+            Logger::debug("caVector created successfully");
 
-            std::cout << "DEBUG: About to cast to Python..." << std::endl;
+            Logger::debug("About to cast to Python...");
             auto result_obj = py::cast(vec);
-            std::cout << "DEBUG: Cast to Python completed successfully" << std::endl;
+            Logger::debug("Cast to Python completed successfully");
             return result_obj;
 
         } catch (const std::exception& e) {
-            std::cout << "DEBUG: ERROR - Exception during vector creation: " << e.what() << std::endl;
+            Logger::debug("ERROR - Exception during vector creation:  {}", e.what());
             throw std::runtime_error("Failed to create vector: " + std::string(e.what()));
         } catch (...) {
-            std::cout << "DEBUG: ERROR - Unknown exception during vector creation" << std::endl;
+            Logger::debug("ERROR - Unknown exception during vector creation");
             throw std::runtime_error("Failed to create vector: unknown error");
         }
     }, py::arg("size"), py::arg("init_func"), py::arg("params") = std::vector<double>{},

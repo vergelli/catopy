@@ -12,6 +12,9 @@ py3 = py_mod.find_installation('python3', required: true)
 # Encontrar pybind11
 pybind11_dep = dependency('pybind11', required: true)
 
+# Encontrar spdlog
+spdlog_dep = dependency('spdlog', required: true)
+
 # Encontrar CUDA
 cuda_dep = dependency('cuda', required: true)
 
@@ -24,7 +27,8 @@ add_project_arguments('-arch=sm_' + cuda_arch, language: 'cuda')
 incdirs = include_directories(
   'include/core',
   'include/device',
-  'include/host'
+  'include/host',
+  'include/logger'
 )
 
 # Fuentes del proyecto
@@ -32,6 +36,7 @@ sources = [
   'src/host/bindings/bindings.cpp',
   'src/host/bindings/devices_bindings.cpp',
   'src/host/bindings/data_structures_bindings.cpp',
+  'src/logger/LoggingConfig.cpp',
   'src/device/utils/devices.cu',
   'src/device/memOps/wrappers/caTensorInitValueWrapper.cu',
   'src/device/memOps/wrappers/caTensorInitZeroWrapper.cu'
@@ -41,6 +46,6 @@ sources = [
 py3.extension_module('cato',
   sources,
   include_directories : incdirs,
-  dependencies : [pybind11_dep, cuda_dep],
+  dependencies : [pybind11_dep, spdlog_dep, cuda_dep],
   install : true
 )

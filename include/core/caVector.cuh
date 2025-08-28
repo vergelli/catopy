@@ -3,6 +3,7 @@
 
 #include "../device/memory/GpuBuffer.cuh"
 #include "../device/cuda_errors.cuh"
+#include "../logger/Logger.cuh"
 #include <vector>
 #include <memory>
 #include <functional>
@@ -66,70 +67,69 @@ public:
         , init_function(init_func)
         , init_params(params) {
         
-        std::cout << "DEBUG: caVector constructor called with size=" << size << std::endl;
-        std::cout << "DEBUG: init_func is null? " << (init_func ? "No" : "Yes") << std::endl;
-        std::cout << "DEBUG: params size: " << params.size() << std::endl;
+        Logger::debug("caVector constructor called with size={}", size);
+        Logger::debug("init_func is null? {}", (init_func ? "No" : "Yes"));
+        Logger::debug("params size: {}", params.size());
         
         if (size == 0) {
-            std::cout << "DEBUG: ERROR - size is 0" << std::endl;
+            Logger::error("ERROR - size is 0");
             throw std::invalid_argument("caVector: size must be greater than 0");
         }
 
         if (!init_func) {
-            std::cout << "DEBUG: ERROR - init_func is null" << std::endl;
+            Logger::error("ERROR - init_func is null");
             throw std::invalid_argument("caVector: initialization function cannot be null");
         }
 
-        std::cout << "DEBUG: About to resize host_data to " << size << std::endl;
+        Logger::debug("About to resize host_data to {}", size);
         
         // Allocate HOST memory
         try {
             host_data.resize(size);
-            std::cout << "DEBUG: host_data resized successfully to " << host_data.size() << std::endl;
+            Logger::debug("host_data resized successfully to  {}", host_data.size());
         } catch (const std::exception& e) {
-            std::cout << "DEBUG: ERROR - Failed to resize host_data: " << e.what() << std::endl;
+            Logger::debug("ERROR - Failed to resize host_data:  {}", e.what());
             throw;
         }
 
-        std::cout << "DEBUG: host_data.data() is null? " << (host_data.data() == nullptr ? "Yes" : "No") << std::endl;
-        std::cout << "DEBUG: host_data.size() == size? " << (host_data.size() == size ? "Yes" : "No") << std::endl;
+        Logger::debug("host_data.data() is null?  {}", (host_data.data() == nullptr ? "Yes" : "No"));
+        Logger::debug("host_data.size() == size?  {}", (host_data.size() == size ? "Yes" : "No"));
         
         // Initialize data using the provided function
         if (host_data.data() != nullptr && host_data.size() == size) {
-            std::cout << "DEBUG: About to call init_function with data=" << host_data.data() 
-                      << ", size=" << size << std::endl;
-            std::cout << "DEBUG: host_data.capacity() = " << host_data.capacity() << std::endl;
-            std::cout << "DEBUG: sizeof(T) = " << sizeof(T) << std::endl;
-            std::cout << "DEBUG: Total allocated bytes = " << (host_data.capacity() * sizeof(T)) << std::endl;
+                        Logger::debug("About to call init_function with data={}, size={}", static_cast<void*>(host_data.data()), size);
+            Logger::debug("host_data.capacity() =  {}", host_data.capacity());
+            Logger::debug("sizeof(T) =  {}", sizeof(T));
+            Logger::debug("Total allocated bytes =  {}", (host_data.capacity() * sizeof(T)));
             
             // Verify memory boundaries
-            std::cout << "DEBUG: Memory range: " << host_data.data() << " to " << (host_data.data() + size) << std::endl;
-            std::cout << "DEBUG: init_function address: " << &init_function << std::endl;
+            Logger::debug("Memory range: {} to {}", static_cast<void*>(host_data.data()), static_cast<void*>(host_data.data() + size));
+            Logger::debug("init_function address:  {}", static_cast<void*>(&init_function));
             
             try {
-                std::cout << "DEBUG: Calling init_function..." << std::endl;
+                Logger::debug("Calling init_function...");
                 init_function(host_data.data(), size, init_params);
-                std::cout << "DEBUG: init_function completed successfully" << std::endl;
+                Logger::debug("init_function completed successfully");
                 
                 // Verify data was written correctly
-                std::cout << "DEBUG: Verifying data after init_function..." << std::endl;
+                Logger::debug("Verifying data after init_function...");
                 for (size_t i = 0; i < std::min(size, size_t(5)); ++i) { // Check first 5 elements
-                    std::cout << "DEBUG: data[" << i << "] = " << host_data[i] << std::endl;
+                    Logger::debug("data[{}] = {}", i, host_data[i]);
                 }
                 
             } catch (const std::exception& e) {
-                std::cout << "DEBUG: ERROR - init_function threw exception: " << e.what() << std::endl;
+                Logger::debug("ERROR - init_function threw exception:  {}", e.what());
                 throw;
             }
         } else {
-            std::cout << "DEBUG: ERROR - Memory allocation failed or size mismatch" << std::endl;
-            std::cout << "DEBUG: host_data.data() = " << host_data.data() << std::endl;
-            std::cout << "DEBUG: host_data.size() = " << host_data.size() << std::endl;
-            std::cout << "DEBUG: expected size = " << size << std::endl;
+            Logger::debug("ERROR - Memory allocation failed or size mismatch");
+            Logger::debug("host_data.data() =  {}", static_cast<void*>(host_data.data()));
+            Logger::debug("host_data.size() =  {}", host_data.size());
+            Logger::debug("expected size =  {}", size);
             throw std::runtime_error("caVector: memory allocation failed or size mismatch");
         }
         
-        std::cout << "DEBUG: caVector constructor completed successfully" << std::endl;
+        Logger::debug("caVector constructor completed successfully");
     }
 
     /**
@@ -146,94 +146,93 @@ public:
         , is_on_gpu_(false)
         , init_params(params) {
         
-        std::cout << "DEBUG: caVector TEMPLATE constructor called with size=" << size << std::endl;
-        std::cout << "DEBUG: Using direct function call (no std::function conversion)" << std::endl;
-        std::cout << "DEBUG: params size: " << params.size() << std::endl;
+        Logger::debug("caVector TEMPLATE constructor called with size= {}", size);
+        Logger::debug("Using direct function call (no std::function conversion)");
+        Logger::debug("params size:  {}", params.size());
         
         if (size == 0) {
-            std::cout << "DEBUG: ERROR - size is 0" << std::endl;
+            Logger::debug("ERROR - size is 0");
             throw std::invalid_argument("caVector: size must be greater than 0");
         }
 
-        std::cout << "DEBUG: About to resize host_data to " << size << std::endl;
-        
+        Logger::debug("About to resize host_data to  {}", size);
+
         // Allocate HOST memory
         try {
             host_data.resize(size);
-            std::cout << "DEBUG: host_data resized successfully to " << host_data.size() << std::endl;
+            Logger::debug("host_data resized successfully to  {}", host_data.size());
         } catch (const std::exception& e) {
-            std::cout << "DEBUG: ERROR - Failed to resize host_data: " << e.what() << std::endl;
+            Logger::debug("ERROR - Failed to resize host_data:  {}", e.what());
             throw;
         }
 
-        std::cout << "DEBUG: host_data.data() is null? " << (host_data.data() == nullptr ? "Yes" : "No") << std::endl;
-        std::cout << "DEBUG: host_data.size() == size? " << (host_data.size() == size ? "Yes" : "No") << std::endl;
-        
+        Logger::debug("host_data.data() is null?  {}", (host_data.data() == nullptr ? "Yes" : "No"));
+        Logger::debug("host_data.size() == size?  {}", (host_data.size() == size ? "Yes" : "No"));
+
         // Initialize data using the provided function directly
         if (host_data.data() != nullptr && host_data.size() == size) {
-            std::cout << "DEBUG: About to call init_func directly with data=" << host_data.data() 
-                      << ", size=" << size << std::endl;
-            std::cout << "DEBUG: host_data.capacity() = " << host_data.capacity() << std::endl;
-            std::cout << "DEBUG: sizeof(T) = " << sizeof(T) << std::endl;
-            std::cout << "DEBUG: Total allocated bytes = " << (host_data.capacity() * sizeof(T)) << std::endl;
-            
+            Logger::debug("About to call init_func directly with data={}, size={}", static_cast<void*>(host_data.data()), size);
+            Logger::debug("host_data.capacity() =  {}", host_data.capacity());
+            Logger::debug("sizeof(T) =  {}", sizeof(T));
+            Logger::debug("Total allocated bytes =  {}", (host_data.capacity() * sizeof(T)));
+
             // Verify memory boundaries
-            std::cout << "DEBUG: Memory range: " << host_data.data() << " to " << (host_data.data() + size) << std::endl;
-            
+            Logger::debug("Memory range: {} to {}", static_cast<void*>(host_data.data()), static_cast<void*>(host_data.data() + size));
+
             try {
-                std::cout << "DEBUG: Calling init_func directly..." << std::endl;
+                Logger::debug("Calling init_func directly...");
                 init_func(host_data.data(), size, params);
-                std::cout << "DEBUG: init_func completed successfully" << std::endl;
-                
+                Logger::debug("init_func completed successfully");
+
                 // Verify data was written correctly
-                std::cout << "DEBUG: Verifying data after init_func..." << std::endl;
+                Logger::debug("Verifying data after init_func...");
                 for (size_t i = 0; i < std::min(size, size_t(5)); ++i) { // Check first 5 elements
-                    std::cout << "DEBUG: data[" << i << "] = " << host_data[i] << std::endl;
+                    Logger::debug("data[{}] = {}", i, host_data[i]);
                 }
-                
+
             } catch (const std::exception& e) {
-                std::cout << "DEBUG: ERROR - init_func threw exception: " << e.what() << std::endl;
+                Logger::debug("ERROR - init_func threw exception:  {}", e.what());
                 throw;
             }
         } else {
-            std::cout << "DEBUG: ERROR - Memory allocation failed or size mismatch" << std::endl;
-            std::cout << "DEBUG: host_data.data() = " << host_data.data() << std::endl;
-            std::cout << "DEBUG: host_data.size() = " << host_data.size() << std::endl;
-            std::cout << "DEBUG: expected size = " << size << std::endl;
+            Logger::debug("ERROR - Memory allocation failed or size mismatch");
+            Logger::debug("host_data.data() =  {}", static_cast<void*>(host_data.data()));
+            Logger::debug("host_data.size() =  {}", host_data.size());
+            Logger::debug("expected size =  {}", size);
             throw std::runtime_error("caVector: memory allocation failed or size mismatch");
         }
-        
-        std::cout << "DEBUG: caVector TEMPLATE constructor completed successfully" << std::endl;
+
+        Logger::debug("caVector TEMPLATE constructor completed successfully");
     }
 
     /**
      * @brief Destructor: automatically cleans up GPU memory if allocated
      */
     ~caVector() {
-        std::cout << "DEBUG: caVector destructor called for size=" << size_ << std::endl;
-        std::cout << "DEBUG: is_on_gpu_ = " << (is_on_gpu_ ? "true" : "false") << std::endl;
-        std::cout << "DEBUG: gpu_buffer exists? " << (gpu_buffer ? "Yes" : "No") << std::endl;
-        std::cout << "DEBUG: host_data.size() = " << host_data.size() << std::endl;
-        std::cout << "DEBUG: host_data.data() = " << host_data.data() << std::endl;
+        Logger::debug("caVector destructor called for size= {}", size_);
+        Logger::debug("is_on_gpu_ =  {}", (is_on_gpu_ ? "true" : "false"));
+        Logger::debug("gpu_buffer exists?  {}", (gpu_buffer ? "Yes" : "No"));
+        Logger::debug("host_data.size() =  {}", host_data.size());
+        Logger::debug("host_data.data() =  {}", static_cast<void*>(host_data.data()));
         
         try {
             // Clean up GPU memory if allocated
             if (gpu_buffer) {
-                std::cout << "DEBUG: About to reset gpu_buffer" << std::endl;
+                Logger::debug("About to reset gpu_buffer");
                 gpu_buffer.reset();
-                std::cout << "DEBUG: gpu_buffer reset completed" << std::endl;
+                Logger::debug("gpu_buffer reset completed");
             } else {
-                std::cout << "DEBUG: No gpu_buffer to clean up" << std::endl;
+                Logger::debug("No gpu_buffer to clean up");
             }
         } catch (const std::exception& e) {
-            std::cout << "DEBUG: ERROR - Exception in destructor: " << e.what() << std::endl;
+            Logger::debug("ERROR - Exception in destructor:  {}", e.what());
             // Ignore exceptions in destructor
         } catch (...) {
-            std::cout << "DEBUG: ERROR - Unknown exception in destructor" << std::endl;
+            Logger::debug("ERROR - Unknown exception in destructor");
         }
         
-        std::cout << "DEBUG: About to exit caVector destructor" << std::endl;
-        std::cout << "DEBUG: caVector destructor completed" << std::endl;
+        Logger::debug("About to exit caVector destructor");
+        Logger::debug("caVector destructor completed");
     }
 
     // ===== MEMORY MANAGEMENT =====
@@ -427,11 +426,11 @@ public:
      */
     std::string smart_string() const {
         if (host_data.size() <= 10) {
-            return "caVector(" + to_list_string() + ")";
+            return to_list_string() ;
         } else {
             std::string first = head_string(5);
             std::string last = tail_string(5);
-            return "caVector(" + first + " ... " + last + ", size=" + std::to_string(size_) + ")";
+            return first + " ... " + last + ", size=" + std::to_string(size_);
         }
     }
 
