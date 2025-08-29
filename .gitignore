@@ -6,14 +6,53 @@
 *.cubin
 *.fatbin
 
+
+#Python stuff
+
+__pycache__/
+.ipynb_checkpoints
+*.so
+*.dylib
+*.dll
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+*.manifest
+*.spec
+*.log
+*.aux
+*.out
+*.toc
+*.gz
+*.zip
+*.tar
+*.whl
+*.env
+*.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+*.env/
+*.venv/
+
+
 #dev tools
 tools/
+lab/
 build/
 cato_Pkg/
+tests/profiling/*
+
 
 .vscode
 .idea
 cuda-keyring_1.0-1_all.deb
+
 # Archivos de CUDA del sistema
 *.deb
 cuda-keyring_*.deb
