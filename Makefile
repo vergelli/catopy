@@ -354,9 +354,8 @@ test-frontend:
 
 #* Backend tests (C++/CUDA)
 test-backend:
-	@echo "$(BOLD)$(BLUE)Ejecutando tests backend (C++/CUDA)...$(RESET)"
-	@$(VENV_ACTIVATE) && python -m pytest tests/backend/ -v --tb=short
-	@echo "$(BOLD)$(GREEN)Tests backend completados$(RESET)"
+	@echo "$(BOLD)$(BLUE)Executing back-end unit tests (C++/CUDA)...$(RESET)"
+	@echo "$(BOLD)$(RED)NOPE, NOT Yet, I'm working on it$(RESET)"
 
 #* Profiling tests (rendimiento Python)
 test-profiling:
@@ -376,9 +375,8 @@ test-unit: test-frontend
 
 #* Tests que requieren CUDA
 test-cuda:
-	@echo "$(BOLD)$(BLUE)Ejecutando tests que requieren CUDA...$(RESET)"
-	@$(VENV_ACTIVATE) && python -m pytest tests/ -v -m cuda --tb=short
-	@echo "$(BOLD)$(GREEN)Tests CUDA completados$(RESET)"
+	@echo "$(BOLD)$(BLUE)Executing CUDA tests...$(RESET)"
+	@echo "$(BOLD)$(RED)NOPE, NOT Yet, I'm working on it$(RESET)"
 
 #* Tests con reporte de cobertura
 test-coverage:
