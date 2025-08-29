@@ -3,17 +3,15 @@
 
 /**
  * @file GpuBuffer.cuh
- * @brief Clase para gestión automática y segura de memoria GPU
- * 
- * Esta clase implementa el patrón RAII (Resource Acquisition Is Initialization)
- * para manejar memoria de la GPU de manera automática y segura.
- * 
- * Características principales:
- * - Asignación automática de memoria GPU al crear el objeto
- * - Liberación automática de memoria al destruir el objeto
- * - Prevención de memory leaks y double-free
- * - Soporte para move semantics (transferencia de propiedad)
- * - Prohibición de copias accidentales
+ * @brief Class for automatic and safe GPU memory management
+ * * This class implements the RAII (Resource Acquisition Is Initialization) pattern
+ * to handle GPU memory automatically and safely.
+ * * Key Features:
+ * - Automatic allocation of GPU memory upon object creation
+ * - Automatic deallocation of memory upon object destruction
+ * - Prevention of memory leaks and double-frees
+ * - Support for move semantics (transfer of ownership)
+ * - Prohibition of accidental copies
  */
 
 #include "../cuda_errors.cuh"
@@ -25,17 +23,16 @@
 template<typename T>
 class GpuBuffer {
 private:
-    T* gpu_pointer = nullptr;        // Puntero a memoria GPU
-    size_t element_count = 0;         // Número de elementos almacenados
+    T* gpu_pointer = nullptr;        // Pointer to GPU memory
+    size_t element_count = 0;        // Number of stored elements
 
 public:
     /**
-     * @brief Constructor: asigna memoria GPU automáticamente
-     * @param count Número de elementos de tipo T a almacenar
-     * 
-     * Ejemplo:
+     * @brief Constructor: automatically allocates GPU memory
+     * @param count Number of elements of type T to store
+     * * Example:
      * @code
-     * GpuBuffer<double> buffer(1000);  // Almacena 1000 doubles en GPU
+     * GpuBuffer<double> buffer(1000); // Stores 1000 doubles on the GPU
      * @endcode
      */
     GpuBuffer(size_t count) : element_count(count) {
@@ -49,8 +46,8 @@ public:
         }
 
         Logger::debug("About to call cudaMalloc...");
-        
-        // Asignar memoria en GPU usando CUDA
+
+        // Allocate memory on GPU using CUDA
         try {
             CHECK_CUDA_ERROR(cudaMalloc((void**)&gpu_pointer, count * sizeof(T)));
             Logger::debug("cudaMalloc completed successfully");
@@ -70,10 +67,9 @@ public:
     }
 
     /**
-     * @brief Destructor: libera memoria GPU automáticamente
-     * 
-     * No necesitas llamar esto manualmente. Se ejecuta automáticamente
-     * cuando el objeto sale de scope.
+     * @brief Destructor: automatically deallocates GPU memory
+     * * You don't need to call this manually. It automatically executes
+     * when the object goes out of scope.
      */
     ~GpuBuffer() {
         Logger::debug("GpuBuffer destructor called");
@@ -100,94 +96,93 @@ public:
     }
 
     /**
-     * @brief Obtener puntero a memoria GPU
-     * @return Puntero raw a la memoria GPU
-
-     * Usar este puntero para operaciones CUDA.
-     * NO liberar manualmente - GpuBuffer se encarga de eso.
+     * @brief Get pointer to GPU memory
+     * @return Raw pointer to the GPU memory
+     *
+     * Use this pointer for CUDA operations.
+     * DO NOT manually free it - GpuBuffer handles that.
      */
     T* get_pointer() const { 
         return gpu_pointer; 
     }
 
     /**
-     * @brief Obtener número de elementos almacenados
-     * @return Número de elementos de tipo T
+     * @brief Get number of stored elements
+     * @return Number of elements of type T
      */
     size_t get_size() const { 
         return element_count; 
     }
 
     /**
-     * @brief Obtener tamaño total en bytes
-     * @return Tamaño total de memoria en bytes
+     * @brief Get total size in bytes
+     * @return Total memory size in bytes
      */
     size_t get_size_bytes() const { 
         return element_count * sizeof(T); 
     }
 
     /**
-     * @brief Verificar si el buffer está vacío
-     * @return true si no hay elementos, false en caso contrario
+     * @brief Check if the buffer is empty
+     * @return true if there are no elements, false otherwise
      */
     bool is_empty() const { 
         return element_count == 0; 
     }
 
-    // ===== PROHIBICIÓN DE COPIAS =====
-    // No permitir copias accidentales que podrían causar double-free
+    // ===== PROHIBITION OF COPIES =====
+    // Do not allow accidental copies that could cause double-free
 
     /**
-     * @brief Constructor de copia PROHIBIDO
+     * @brief Copy Constructor FORBIDDEN
      *
-     * No se pueden copiar buffers GPU porque cada uno debe tener
-     * su propia memoria. Copiar podría causar double-free.
+     * GPU buffers cannot be copied because each one must have
+     * its own memory. Copying could cause a double-free.
      */
     GpuBuffer(const GpuBuffer&) = delete;
 
     /**
-     * @brief Operador de asignación por copia PROHIBIDO
+     * @brief Copy Assignment Operator FORBIDDEN
      *
-     * Misma razón: no permitir copias accidentales.
+     * Same reason: do not allow accidental copies.
      */
     GpuBuffer& operator=(const GpuBuffer&) = delete;
 
-    // ===== SOPORTE PARA MOVE SEMANTICS =====
-    // Permitir transferir propiedad de un buffer a otro
+    // ===== SUPPORT FOR MOVE SEMANTICS =====
+    // Allow transferring ownership from one buffer to another
 
     /**
-     * @brief Constructor de movimiento: transfiere propiedad
-     * @param other Buffer del cual tomar la propiedad
-     * 
-     * Después del movimiento, 'other' queda en estado inválido
-     * y no debe usarse.
+     * @brief Move Constructor: transfers ownership
+     * @param other Buffer from which to take ownership
+     * * After the move, 'other' is left in an invalid state
+     * and should not be used.
      */
     GpuBuffer(GpuBuffer&& other) noexcept
         : gpu_pointer(other.gpu_pointer), element_count(other.element_count) {
-        // Transferir propiedad
+        // Transfer ownership
         other.gpu_pointer = nullptr;
         other.element_count = 0;
     }
 
     /**
-     * @brief Operador de asignación por movimiento: transfiere propiedad
-     * @param other Buffer del cual tomar la propiedad
-     * @return Referencia a este buffer
+     * @brief Move Assignment Operator: transfers ownership
+     * @param other Buffer from which to take ownership
+     * @return Reference to this buffer
      *
-     * Libera la memoria actual antes de tomar la nueva.
+     * Frees the current memory before taking the new one.
      */
     GpuBuffer& operator=(GpuBuffer&& other) noexcept {
         if (this != &other) {
-            // Liberar memoria actual
+            // Free current memory
             if (gpu_pointer != nullptr) {
                 CHECK_CUDA_ERROR(cudaFree(gpu_pointer));
             }
 
-            // Transferir propiedad
+            // Transfer ownership
             gpu_pointer = other.gpu_pointer;
             element_count = other.element_count;
 
-            // Invalidar 'other'
+            // Invalidate 'other'
             other.gpu_pointer = nullptr;
             other.element_count = 0;
         }

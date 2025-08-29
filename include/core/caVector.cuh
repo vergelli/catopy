@@ -2,6 +2,7 @@
 #define CA_VECTOR_CUH
 
 #include "../device/memory/GpuBuffer.cuh"
+#include "../device/memory/MemoryTransfer.cuh"
 #include "../device/cuda_errors.cuh"
 #include "../logger/Logger.cuh"
 #include <vector>
@@ -39,6 +40,10 @@ private:
     // Metadata
     size_t size_;                                               // Number of elements
     bool is_on_gpu_;                                            // Whether data is currently on GPU
+    
+    // Dirty flags for memory consistency
+    bool host_dirty_;                                           // HOST data has been modified
+    bool gpu_dirty_;                                            // GPU data has been modified
 
     // Initialization function and parameters
     std::function<void(T*, size_t, const std::vector<double>&)> init_function;  // Function to initialize data
@@ -64,6 +69,8 @@ public:
              const std::vector<double>& params = {})
         : size_(size)
         , is_on_gpu_(false)
+        , host_dirty_(false)
+        , gpu_dirty_(false)
         , init_function(init_func)
         , init_params(params) {
         
@@ -144,6 +151,8 @@ public:
     caVector(size_t size, InitFunc&& init_func, const std::vector<double>& params = {})
         : size_(size)
         , is_on_gpu_(false)
+        , host_dirty_(false)
+        , gpu_dirty_(false)
         , init_params(params) {
         
         Logger::debug("caVector TEMPLATE constructor called with size= {}", size);
@@ -240,45 +249,73 @@ public:
     /**
      * @brief Ensures data is available on GPU
      * 
-     * This method implements the "lazy copy" pattern:
-     * - If data is already on GPU, does nothing
+     * This method implements the "lazy copy" pattern with dirty flags:
+     * - If data is already on GPU and not dirty, does nothing
      * - If data is only on HOST, allocates GPU memory and transfers data
-     * - Sets is_on_gpu_ flag to true
+     * - If HOST data was modified (host_dirty_), transfers HOST to GPU
+     * - Sets is_on_gpu_ flag to true and clears dirty flags
      */
     void ensure_on_gpu() {
         if (!is_on_gpu_) {
-            // Allocate GPU memory
+            // First time: allocate GPU memory and transfer data
             gpu_buffer = std::make_unique<GpuBuffer<T>>(size_);
-
-            // Transfer data from HOST to GPU
-            CHECK_CUDA_ERROR(cudaMemcpy(
+            
+            // Transfer data from HOST to GPU using our MemoryTransfer namespace
+            MemoryTransfer::host_to_gpu(
                 gpu_buffer->get_pointer(),
                 host_data.data(),
-                size_ * sizeof(T),
-                cudaMemcpyHostToDevice
-            ));
+                size_
+            );
+            
             is_on_gpu_ = true;
+            host_dirty_ = false;
+            gpu_dirty_ = false;
+        } else if (host_dirty_) {
+            // HOST was modified: transfer HOST to GPU to sync
+            MemoryTransfer::host_to_gpu(
+                gpu_buffer->get_pointer(),
+                host_data.data(),
+                size_
+            );
+            
+            host_dirty_ = false;
+            gpu_dirty_ = false;
+        } else if (gpu_dirty_) {
+            // GPU was marked as dirty: HOST data is correct, just clear flags
+            // No need to transfer HOST → GPU since HOST has the latest data
+            host_dirty_ = false;
+            gpu_dirty_ = false;
         }
+        // If all flags are false, no action needed (GPU is already up-to-date)
     }
 
     /**
      * @brief Ensures data is available on HOST
      * 
-     * If data was modified on GPU, this method transfers it back to HOST
+     * If data was modified on GPU (gpu_dirty_), this method transfers it back to HOST
      * to ensure consistency.
      */
-    void ensure_on_host() {
-        if (is_on_gpu_) {
-            // Transfer data from GPU to HOST
-            CHECK_CUDA_ERROR(cudaMemcpy(
+private:
+    void sync_gpu_to_host() {
+        if (gpu_dirty_) {
+            // GPU was modified: transfer GPU to HOST to sync
+            MemoryTransfer::gpu_to_host(
                 host_data.data(),
                 gpu_buffer->get_pointer(),
-                size_ * sizeof(T),
-                cudaMemcpyDeviceToHost
-            ));
-            // Update flag to indicate data is now on HOST
-            is_on_gpu_ = false;
+                size_
+            );
+            
+            gpu_dirty_ = false;
+            host_dirty_ = false;
         }
+    }
+
+public:
+    void ensure_on_host() {
+        sync_gpu_to_host();
+        // After ensure_on_host(), data is guaranteed to be on HOST
+        // Mark as not on GPU (even if GPU buffer exists)
+        is_on_gpu_ = false;
     }
 
     // ===== DATA ACCESS =====
@@ -313,6 +350,91 @@ public:
         return host_data;
     }
 
+    // ===== INDEXING OPERATORS =====
+
+    /**
+     * @brief Get element at specified index (const version)
+     * @param index Index of the element to retrieve
+     * @return Const reference to the element
+     * 
+     * This operator ensures data is on HOST before accessing.
+     * Throws std::out_of_range if index is invalid.
+     */
+    const T& operator[](size_t index) const {
+        if (index >= size_) {
+            throw std::out_of_range("caVector: index out of range");
+        }
+        // For const version, we can't call ensure_on_host() as it modifies state
+        // We assume HOST data is available and up-to-date
+        return host_data[index];
+    }
+
+    /**
+     * @brief Get element at specified index (non-const version)
+     * @param index Index of the element to retrieve
+     * @return Reference to the element
+     * 
+     * This operator ensures data is on HOST before accessing.
+     * Only marks GPU as dirty if GPU exists.
+     * Throws std::out_of_range if index is invalid.
+     */
+    T& operator[](size_t index) {
+        if (index >= size_) {
+            throw std::out_of_range("caVector: index out of range");
+        }
+        
+        // Don't call sync_gpu_to_host when modifying HOST
+        // HOST data is correct and doesn't need sync from GPU
+        
+        // Mark GPU as dirty if GPU exists
+        if (is_on_gpu_) {
+            gpu_dirty_ = true; // Mark GPU as dirty (will be synced when needed)
+        }
+        
+        return host_data[index];
+    }
+
+    /**
+     * @brief Get element at specified index with bounds checking
+     * @param index Index of the element to retrieve
+     * @return Reference to the element
+     * 
+     * This method provides bounds checking and is safer than operator[].
+     * Throws std::out_of_range if index is invalid.
+     */
+    T& at(size_t index) {
+        if (index >= size_) {
+            throw std::out_of_range("caVector: index " + std::to_string(index) + " out of range (size: " + std::to_string(size_) + ")");
+        }
+        
+        // Don't call sync_gpu_to_host when modifying HOST
+        // HOST data is correct and doesn't need sync from GPU
+        
+        // Only mark GPU as dirty if GPU exists
+        if (is_on_gpu_) {
+            gpu_dirty_ = true; // Mark GPU as dirty
+        }
+        
+        return host_data[index];
+    }
+
+    /**
+     * @brief Get element at specified index with bounds checking (const version)
+     * @param index Index of the element to retrieve
+     * @return Const reference to the element
+     * 
+     * This method provides bounds checking and is safer than operator[].
+     * Throws std::out_of_range if index is invalid.
+     */
+    const T& at(size_t index) const {
+        if (index >= size_) {
+            throw std::out_of_range("caVector: index " + std::to_string(index) + " out of range (size: " + std::to_string(index) + ")");
+        }
+        // For const version, we can't call ensure_on_host() as it modifies state
+        // We assume HOST data is available and up-to-date
+        return host_data[index];
+    }
+
     // ===== METADATA =====
 
     /**
@@ -326,6 +448,18 @@ public:
      * @return true if data is on GPU, false if only on HOST
      */
     bool is_on_gpu() const { return is_on_gpu_; }
+
+    /**
+     * @brief Check if HOST data has been modified
+     * @return true if HOST data is dirty, false if clean
+     */
+    bool is_host_dirty() const { return host_dirty_; }
+
+    /**
+     * @brief Check if GPU data has been modified
+     * @return true if GPU data is dirty, false if clean
+     */
+    bool is_gpu_dirty() const { return gpu_dirty_; }
 
     /**
      * @brief Get initialization parameters
@@ -344,6 +478,8 @@ public:
         std::cout << "  On GPU: " << (is_on_gpu_ ? "Yes" : "No") << std::endl;
         std::cout << "  HOST memory: " << (host_data.size() > 0 ? "Allocated" : "Not allocated") << std::endl;
         std::cout << "  GPU memory: " << (gpu_buffer ? "Allocated" : "Not allocated") << std::endl;
+        std::cout << "  HOST dirty: " << (host_dirty_ ? "Yes" : "No") << std::endl;
+        std::cout << "  GPU dirty: " << (gpu_dirty_ ? "Yes" : "No") << std::endl;
     }
 
     /**
@@ -443,6 +579,8 @@ public:
     caVector(const caVector& other)
         : size_(other.size_)
         , is_on_gpu_(false)  // New copy starts on HOST
+        , host_dirty_(false)  // New copy starts clean
+        , gpu_dirty_(false)   // New copy starts clean
         , init_function(other.init_function)
         , init_params(other.init_params) {
 
@@ -450,6 +588,7 @@ public:
         host_data = other.host_data;
 
         // Note: GPU data is not copied (starts fresh on HOST)
+        // Dirty flags are reset for the new copy
     }
 
     /**
@@ -461,6 +600,8 @@ public:
         if (this != &other) {
             size_ = other.size_;
             is_on_gpu_ = false;  // Reset to HOST
+            host_dirty_ = false;  // Reset dirty flags
+            gpu_dirty_ = false;   // Reset dirty flags
             init_function = other.init_function;
             init_params = other.init_params;
 
@@ -482,12 +623,16 @@ public:
         , gpu_buffer(std::move(other.gpu_buffer))
         , size_(other.size_)
         , is_on_gpu_(other.is_on_gpu_)
+        , host_dirty_(other.host_dirty_)
+        , gpu_dirty_(other.gpu_dirty_)
         , init_function(std::move(other.init_function))
         , init_params(std::move(other.init_params)) {
 
         // Reset other vector
         other.size_ = 0;
         other.is_on_gpu_ = false;
+        other.host_dirty_ = false;
+        other.gpu_dirty_ = false;
     }
 
     /**
@@ -501,12 +646,16 @@ public:
             gpu_buffer = std::move(other.gpu_buffer);
             size_ = other.size_;
             is_on_gpu_ = other.is_on_gpu_;
+            host_dirty_ = other.host_dirty_;
+            gpu_dirty_ = other.gpu_dirty_;
             init_function = std::move(other.init_function);
             init_params = std::move(other.init_params);
 
             // Reset other vector
             other.size_ = 0;
             other.is_on_gpu_ = false;
+            other.host_dirty_ = false;
+            other.gpu_dirty_ = false;
         }
         return *this;
     }
