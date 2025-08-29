@@ -18,3 +18,4 @@ cuda-keyring_1.0-1_all.deb
 *.deb
 cuda-keyring_*.deb
 /var/cache/apt/archives/*.deb
+*pyc

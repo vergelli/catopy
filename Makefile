@@ -22,7 +22,7 @@ VENV_ACTIVATE = . .venv/bin/activate
 #* COMANDOS PRINCIPALES
 #* =============================================================================
 
-.PHONY: help all clean build install test test-unit test-cuda test-coverage test-watch
+.PHONY: help all clean clean-all build install test test-unit test-cuda test-coverage test-watch
 
 #* Comando por defecto - muestra ayuda
 help:
@@ -68,7 +68,8 @@ help:
 	@echo "$(BOLD)$(YELLOW)  profile-clean$(RESET) - Limpia reportes de profiling"
 	@echo ""
 	@echo "$(BOLD)$(CYAN)Utilidades:$(RESET)"
-	@echo "$(BOLD)$(YELLOW)  clean$(RESET)    - Limpia archivos de build"
+	@echo "$(BOLD)$(YELLOW)  clean$(RESET)    - Limpia archivos de build y residuos de Python"
+	@echo "$(BOLD)$(YELLOW)  clean-all$(RESET) - Limpieza super agresiva (incluye .venv/)"
 	@echo "$(BOLD)$(YELLOW)  rebuild$(RESET)  - Limpia y recompila todo"
 	@echo "$(BOLD)$(YELLOW)  quick$(RESET)    - Compila + verifica (cambios frecuentes)"
 	@echo "$(BOLD)$(YELLOW)  check$(RESET)    - Solo compila (verificar que compila)"
@@ -150,11 +151,37 @@ install:
 #& LIMPIEZA Y MANTENIMIENTO
 #& =============================================================================
 
-#* Limpia archivos de build
+#* Limpia archivos de build y residuos de Python
 clean:
-	@echo "$(BOLD)$(YELLOW)Limpiando archivos de build...$(RESET)"
+	@echo "$(BOLD)$(YELLOW) Limpiando archivos de build y residuos de Python...$(RESET)"
+	@echo "$(CYAN)Eliminando directorio de build...$(RESET)"
 	@rm -rf $(BUILD_DIR)
-	@echo "$(BOLD)$(GREEN)Limpieza completada$(RESET)"
+	@echo "$(CYAN)Eliminando archivos Python cache...$(RESET)"
+	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+	@find . -name "*.pyc" -delete 2>/dev/null || true
+	@find . -name "*.pyo" -delete 2>/dev/null || true
+	@find . -name "*.pyd" -delete 2>/dev/null || true
+	@echo "$(CYAN)Eliminando archivos de distribución...$(RESET)"
+	@rm -rf dist/ build/ *.egg-info/ .eggs/
+	@echo "$(CYAN)Eliminando archivos de cobertura...$(RESET)"
+	@rm -rf .coverage htmlcov/ .pytest_cache/
+	@echo "$(BOLD)$(GREEN) Limpieza completa completada$(RESET)"
+
+#* Limpieza super agresiva (incluye entorno virtual)
+clean-all: clean
+	@echo "$(BOLD)$(RED)  LIMPIEZA SUPER AGRESIVA - INCLUYE ENTORNO VIRTUAL$(RESET)"
+	@echo "$(YELLOW)¿Estás seguro? Esto eliminará TODO, incluyendo .venv/$(RESET)"
+	@read -p "Presiona 'y' para confirmar: " confirm; \
+	if [ "$$confirm" = "y" ]; then \
+		echo "$(CYAN)Eliminando entorno virtual...$(RESET)"; \
+		rm -rf .venv/; \
+		echo "$(CYAN)Eliminando archivos de configuración...$(RESET)"; \
+		rm -rf .mesonpy/ .pytest_cache/ .coverage*; \
+		echo "$(BOLD)$(GREEN) Limpieza super agresiva completada$(RESET)"; \
+		echo "$(YELLOW)  Necesitarás ejecutar 'uv sync' para recrear el entorno$(RESET)"; \
+	else \
+		echo "$(YELLOW)Limpieza cancelada$(RESET)"; \
+	fi
 
 #* Reconstruye todo desde cero
 rebuild: clean all
@@ -358,7 +385,7 @@ test-coverage:
 	@echo "$(BOLD)$(BLUE)Ejecutando tests con cobertura...$(RESET)"
 	@$(VENV_ACTIVATE) && python -m pytest tests/frontend/ -v --cov=$(PROJECT_NAME) --cov-report=html --cov-report=term-missing
 	@echo "$(BOLD)$(GREEN)Reporte de cobertura generado$(RESET)"
-	@echo "$(CYAN)📁 Abre htmlcov/index.html para ver el reporte completo$(RESET)"
+	@echo "$(CYAN)Abre htmlcov/index.html para ver el reporte completo$(RESET)"
 
 #* Tests en modo watch
 test-watch:
