@@ -73,11 +73,11 @@ public:
         , gpu_dirty_(false)
         , init_function(init_func)
         , init_params(params) {
-        
+
         Logger::debug("caVector constructor called with size={}", size);
         Logger::debug("init_func is null? {}", (init_func ? "No" : "Yes"));
         Logger::debug("params size: {}", params.size());
-        
+
         if (size == 0) {
             Logger::error("ERROR - size is 0");
             throw std::invalid_argument("caVector: size must be greater than 0");
@@ -89,7 +89,7 @@ public:
         }
 
         Logger::debug("About to resize host_data to {}", size);
-        
+
         // Allocate HOST memory
         try {
             host_data.resize(size);
@@ -101,29 +101,29 @@ public:
 
         Logger::debug("host_data.data() is null?  {}", (host_data.data() == nullptr ? "Yes" : "No"));
         Logger::debug("host_data.size() == size?  {}", (host_data.size() == size ? "Yes" : "No"));
-        
+
         // Initialize data using the provided function
         if (host_data.data() != nullptr && host_data.size() == size) {
                         Logger::debug("About to call init_function with data={}, size={}", static_cast<void*>(host_data.data()), size);
             Logger::debug("host_data.capacity() =  {}", host_data.capacity());
             Logger::debug("sizeof(T) =  {}", sizeof(T));
             Logger::debug("Total allocated bytes =  {}", (host_data.capacity() * sizeof(T)));
-            
+
             // Verify memory boundaries
             Logger::debug("Memory range: {} to {}", static_cast<void*>(host_data.data()), static_cast<void*>(host_data.data() + size));
             Logger::debug("init_function address:  {}", static_cast<void*>(&init_function));
-            
+
             try {
                 Logger::debug("Calling init_function...");
                 init_function(host_data.data(), size, init_params);
                 Logger::debug("init_function completed successfully");
-                
+
                 // Verify data was written correctly
                 Logger::debug("Verifying data after init_function...");
                 for (size_t i = 0; i < std::min(size, size_t(5)); ++i) { // Check first 5 elements
                     Logger::debug("data[{}] = {}", i, host_data[i]);
                 }
-                
+
             } catch (const std::exception& e) {
                 Logger::debug("ERROR - init_function threw exception:  {}", e.what());
                 throw;
@@ -135,7 +135,7 @@ public:
             Logger::debug("expected size =  {}", size);
             throw std::runtime_error("caVector: memory allocation failed or size mismatch");
         }
-        
+
         Logger::debug("caVector constructor completed successfully");
     }
 
@@ -154,11 +154,11 @@ public:
         , host_dirty_(false)
         , gpu_dirty_(false)
         , init_params(params) {
-        
+
         Logger::debug("caVector TEMPLATE constructor called with size= {}", size);
         Logger::debug("Using direct function call (no std::function conversion)");
         Logger::debug("params size:  {}", params.size());
-        
+
         if (size == 0) {
             Logger::debug("ERROR - size is 0");
             throw std::invalid_argument("caVector: size must be greater than 0");
@@ -195,7 +195,7 @@ public:
 
                 // Verify data was written correctly
                 Logger::debug("Verifying data after init_func...");
-                for (size_t i = 0; i < std::min(size, size_t(5)); ++i) { // Check first 5 elements
+                for (size_t i = 0; i < std::min(size, size_t(5)); ++i) {
                     Logger::debug("data[{}] = {}", i, host_data[i]);
                 }
 
@@ -223,7 +223,7 @@ public:
         Logger::debug("gpu_buffer exists?  {}", (gpu_buffer ? "Yes" : "No"));
         Logger::debug("host_data.size() =  {}", host_data.size());
         Logger::debug("host_data.data() =  {}", static_cast<void*>(host_data.data()));
-        
+
         try {
             // Clean up GPU memory if allocated
             if (gpu_buffer) {
@@ -259,14 +259,14 @@ public:
         if (!is_on_gpu_) {
             // First time: allocate GPU memory and transfer data
             gpu_buffer = std::make_unique<GpuBuffer<T>>(size_);
-            
+
             // Transfer data from HOST to GPU using our MemoryTransfer namespace
             MemoryTransfer::host_to_gpu(
                 gpu_buffer->get_pointer(),
                 host_data.data(),
                 size_
             );
-            
+
             is_on_gpu_ = true;
             host_dirty_ = false;
             gpu_dirty_ = false;
@@ -277,7 +277,7 @@ public:
                 host_data.data(),
                 size_
             );
-            
+
             host_dirty_ = false;
             gpu_dirty_ = false;
         } else if (gpu_dirty_) {
@@ -327,7 +327,7 @@ public:
      * Use this for CPU operations. Data is guaranteed to be on HOST.
      */
     T* host_ptr() {
-        ensure_on_host();                                            // Ensure data is on HOST
+        ensure_on_host();
         return host_data.data();
     }
 
@@ -382,15 +382,15 @@ public:
         if (index >= size_) {
             throw std::out_of_range("caVector: index out of range");
         }
-        
+
         // Don't call sync_gpu_to_host when modifying HOST
         // HOST data is correct and doesn't need sync from GPU
-        
+
         // Mark GPU as dirty if GPU exists
         if (is_on_gpu_) {
             gpu_dirty_ = true; // Mark GPU as dirty (will be synced when needed)
         }
-        
+
         return host_data[index];
     }
 
@@ -406,7 +406,7 @@ public:
         if (index >= size_) {
             throw std::out_of_range("caVector: index " + std::to_string(index) + " out of range (size: " + std::to_string(size_) + ")");
         }
-        
+
         // Don't call sync_gpu_to_host when modifying HOST
         // HOST data is correct and doesn't need sync from GPU
         
@@ -414,7 +414,7 @@ public:
         if (is_on_gpu_) {
             gpu_dirty_ = true; // Mark GPU as dirty
         }
-        
+
         return host_data[index];
     }
 
@@ -468,7 +468,7 @@ public:
     const std::vector<double>& get_init_params() const { return init_params; }
 
     // ===== UTILITY METHODS =====
-    
+
     /**
      * @brief Print vector information for debugging
      */

@@ -29,7 +29,7 @@
 namespace ca {
 
     // ===== BASIC INITIALIZATION FUNCTIONS =====
-    
+
     /**
      * @brief Initialize data with zeros
      * @tparam T Data type
@@ -77,7 +77,7 @@ namespace ca {
     }
 
     // ===== RANDOM INITIALIZATION FUNCTIONS =====
-    
+
     /**
      * @brief Initialize data with uniform random values between 0 and 1
      * @tparam T Data type
@@ -157,18 +157,18 @@ namespace ca {
             std::random_device rd;
             std::mt19937 gen(seed >= 0 ? static_cast<unsigned int>(seed) : rd());
             std::uniform_real_distribution<T> dis(0.0, 1.0);
-            
+
             for (size_t i = 0; i < size; i += 2) {
                 // Box-Muller transformation
                 T u1 = dis(gen);
                 T u2 = dis(gen);
-                
+
                 // Avoid log(0) by ensuring u1 > 0
                 if (u1 <= 0.0) u1 = std::numeric_limits<T>::epsilon();
-                
+
                 T z0 = std::sqrt(-2.0 * std::log(u1)) * std::cos(2.0 * M_PI * u2);
                 T z1 = std::sqrt(-2.0 * std::log(u1)) * std::sin(2.0 * M_PI * u2);
-                
+
                 data[i] = mean + std * z0;
                 
                 // Handle odd-sized arrays
@@ -180,7 +180,7 @@ namespace ca {
     }
 
     // ===== SEQUENTIAL INITIALIZATION FUNCTIONS =====
-    
+
     /**
      * @brief Initialize data with sequential values starting from start
      * @tparam T Data type
