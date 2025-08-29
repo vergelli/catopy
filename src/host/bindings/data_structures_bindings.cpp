@@ -19,12 +19,20 @@ void bind_data_structures(py::module_& m) {
              py::arg("params") = std::vector<double>{})
         .def("size", &caVector<double>::size)
         .def("is_on_gpu", &caVector<double>::is_on_gpu)
+        .def("is_host_dirty", &caVector<double>::is_host_dirty)
+        .def("is_gpu_dirty", &caVector<double>::is_gpu_dirty)
         .def("ensure_on_gpu", &caVector<double>::ensure_on_gpu)
         .def("ensure_on_host", &caVector<double>::ensure_on_host)
         .def("print_info", &caVector<double>::print_info)
         .def("get_memory_info", &caVector<double>::get_memory_info)
         .def("get_init_params", &caVector<double>::get_init_params)
         .def("__len__", &caVector<double>::size)
+        .def("__getitem__", [](const caVector<double>& vec, size_t index) {
+            return vec[index];
+        }, py::arg("index"), "Get element at specified index")
+        .def("__setitem__", [](caVector<double>& vec, size_t index, double value) {
+            vec[index] = value;
+        }, py::arg("index"), py::arg("value"), "Set element at specified index")
         .def("__str__", [](const caVector<double>& vec) {
             return vec.smart_string();
         })
@@ -34,7 +42,8 @@ void bind_data_structures(py::module_& m) {
         .def("to_list_string", &caVector<double>::to_list_string)
         .def("head_string", &caVector<double>::head_string)
         .def("tail_string", &caVector<double>::tail_string)
-        .def("smart_string", &caVector<double>::smart_string);
+        .def("smart_string", &caVector<double>::smart_string)
+        .def("at", static_cast<double&(caVector<double>::*)(size_t)>(&caVector<double>::at), py::arg("index"), "Get element at index with bounds checking");
 
     //& ===== INITIALIZATION FUNCTIONS =====
     //& These return std::function objects that can be used directly

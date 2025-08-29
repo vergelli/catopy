@@ -324,7 +324,7 @@ profile-open:
 		echo "   - cudaMemcpy (GPU→HOST): Vector transfers back to HOST"; \
 		echo "   - Memory allocations: GPU buffer creation"; \
 		echo "   - NVTX markers: Test function boundaries"; \
-		nsys-ui "$$latest_report" & \
+		/usr/local/bin/nsys-ui "$$latest_report" & \
 	else \
 		echo "No profiling reports found. Run 'make profile-memory-transfer' first."; \
 	fi

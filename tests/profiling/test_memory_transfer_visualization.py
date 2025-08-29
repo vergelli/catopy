@@ -166,6 +166,90 @@ def main():
     del all_vectors
     gc.collect()
 
+    print("\n=== Phase 8: Indexing Operators and Dirty Flags ===")
+
+    # Create vector and transfer to GPU
+    print("   Creating vector for indexing operations...")
+    V_index = ca.vector(10000, ca.constant(3.1415))
+    V_index.ensure_on_gpu()
+    print("   Vector transferred to GPU, flags should be clean")
+    assert not V_index.is_gpu_dirty(), "GPU should not be dirty initially"
+
+    # Modify multiple elements (this marks GPU as dirty)
+    print("   Modifying multiple elements to trigger dirty flags...")
+    for i in range(0, 10000, 1000):  # Every 1000 elements
+        V_index[i] = i * 10.0
+        time.sleep(0.01)  # Delay visible in timeline
+
+    print("   Multiple modifications completed, GPU should be dirty")
+    assert V_index.is_gpu_dirty(), "GPU should be dirty after modifications"
+
+    # Resync GPU (this cleans dirty flags)
+    print("   Resyncing GPU to clean dirty flags...")
+    V_index.ensure_on_gpu()
+    assert not V_index.is_gpu_dirty(), "GPU should not be dirty after resync"
+    print("   GPU resynced, flags should be clean")
+
+    # Test reading modified values
+    print("   Verifying modified values are consistent...")
+    for i in range(0, 10000, 2000):
+        assert V_index[i] == i * 10.0, f"Value at index {i} should be {i * 10.0}"
+    print("   All modified values verified correctly")
+
+    print("\n=== Phase 9: Intelligent Memory Synchronization ===")
+
+    # Create multiple vectors with different patterns
+    print("   Creating multiple vectors for sync patterns...")
+    vectors_sync = []
+    for i in range(5):
+        V = ca.vector(5000, ca.constant(i))
+        vectors_sync.append(V)
+
+    # Transfer all to GPU
+    print("   Transferring all vectors to GPU...")
+    for i, V in enumerate(vectors_sync):
+        V.ensure_on_gpu()
+        print(f"   Vector {i+1}/5 transferred to GPU")
+
+    # Modify in parallel (this creates interesting patterns)
+    print("   Modifying vectors in parallel to show sync patterns...")
+    for i, V in enumerate(vectors_sync):
+        # Modify specific elements
+        V[i*1000] = 999.0
+        V[i*1000 + 500] = 888.0
+        time.sleep(0.05)  # Delay for visualization
+
+    # Verify all are dirty
+    print("   Verifying all vectors are marked as dirty...")
+    for i, V in enumerate(vectors_sync):
+        assert V.is_gpu_dirty(), f"Vector {i+1} should be dirty after modifications"
+
+    # Resync all (this should show parallel transfers)
+    print("   Resyncing all vectors to GPU...")
+    for i, V in enumerate(vectors_sync):
+        V.ensure_on_gpu()
+        print(f"   Vector {i+1}/5 resynced to GPU")
+
+    print("   All vectors resynced successfully")
+
+    # Test complex indexing patterns
+    print("   Testing complex indexing patterns...")
+    V_complex = ca.vector(1000, ca.constant(1.0))
+    V_complex.ensure_on_gpu()
+
+    # Create a pattern of modifications
+    for i in range(0, 1000, 50):
+        V_complex[i] = i * 2.0
+        if i % 100 == 0:
+            time.sleep(0.02)  # Visible delay
+
+    # Verify pattern
+    print("   Verifying complex indexing pattern...")
+    for i in range(0, 1000, 100):
+        assert V_complex[i] == i * 2.0, f"Pattern verification failed at index {i}"
+
+    print("   Complex indexing pattern verified successfully")
+
     print("\nMemory Transfer Visualization Test Completed!")
     print("\nIn Nsight Systems, look for:")
     print("   - cudaMemcpy operations (HOST→GPU and GPU→HOST)")
@@ -173,6 +257,8 @@ def main():
     print("   - Timing differences between vector sizes")
     print("   - Sequential vs. parallel transfer patterns")
     print("   - Memory pressure effects")
+    print("   - Indexing operations and dirty flag management")
+    print("   - Intelligent memory synchronization patterns")
     print("\nKey timeline markers:")
     print("   - Phase 1: Vector creation (CPU operations)")
     print("   - Phase 2: HOST→GPU transfers (cudaMemcpy)")
@@ -181,6 +267,8 @@ def main():
     print("   - Phase 5: Memory pressure test")
     print("   - Phase 6: Large vector test")
     print("   - Phase 7: Cleanup")
+    print("   - Phase 8: Indexing operators and dirty flags")
+    print("   - Phase 9: Intelligent memory synchronization")
 
 
 if __name__ == "__main__":
