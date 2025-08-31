@@ -467,6 +467,26 @@ public:
      */
     const std::vector<double>& get_init_params() const { return init_params; }
 
+    /**
+     * @brief Create a deep copy of the vector
+     * @return New caVector with independent copy of data
+     * 
+     * This method creates a completely independent copy of the vector.
+     * The new vector has its own memory and modifications don't affect the original.
+     * 
+     * Example:
+     * @code
+     * caVector<double> original(100, init_func);
+     * caVector<double> copy = original.copy();
+     * copy[0] = 999;  // original[0] remains unchanged
+     * @endcode
+     */
+    caVector<T> copy() const {
+        Logger::debug("copy: Creating deep copy of vector with size={}", size_);
+        return *this;  // Calls the copy constructor
+    }
+
+
     // ===== UTILITY METHODS =====
 
     /**
