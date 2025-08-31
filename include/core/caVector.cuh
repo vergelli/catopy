@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <algorithm>
+#include <climits>
 
 /**
  * @file caVector.cuh
@@ -256,8 +257,11 @@ public:
      * - Sets is_on_gpu_ flag to true and clears dirty flags
      */
     void ensure_on_gpu() {
+        Logger::debug("ensure_on_gpu: is_on_gpu_={} host_dirty_={} gpu_dirty_={}", is_on_gpu_, host_dirty_, gpu_dirty_);
+        
         if (!is_on_gpu_) {
             // First time: allocate GPU memory and transfer data
+            Logger::debug("ensure_on_gpu: First time - allocating GPU memory for size={}", size_);
             gpu_buffer = std::make_unique<GpuBuffer<T>>(size_);
 
             // Transfer data from HOST to GPU using our MemoryTransfer namespace
@@ -270,8 +274,10 @@ public:
             is_on_gpu_ = true;
             host_dirty_ = false;
             gpu_dirty_ = false;
+            Logger::debug("ensure_on_gpu: GPU memory allocated and data transferred");
         } else if (host_dirty_) {
             // HOST was modified: transfer HOST to GPU to sync
+            Logger::debug("ensure_on_gpu: HOST dirty - syncing HOST to GPU");
             MemoryTransfer::host_to_gpu(
                 gpu_buffer->get_pointer(),
                 host_data.data(),
@@ -283,8 +289,11 @@ public:
         } else if (gpu_dirty_) {
             // GPU was marked as dirty: HOST data is correct, just clear flags
             // No need to transfer HOST → GPU since HOST has the latest data
+            Logger::debug("ensure_on_gpu: GPU dirty - clearing flags (HOST has latest data)");
             host_dirty_ = false;
             gpu_dirty_ = false;
+        } else {
+            Logger::debug("ensure_on_gpu: No action needed - GPU is up-to-date");
         }
         // If all flags are false, no action needed (GPU is already up-to-date)
     }
@@ -403,7 +412,10 @@ public:
      * Throws std::out_of_range if index is invalid.
      */
     T& at(size_t index) {
+        Logger::debug("at: Accessing index={} in vector of size={}", index, size_);
+        
         if (index >= size_) {
+            Logger::error("at: Index {} out of range (size: {})", index, size_);
             throw std::out_of_range("caVector: index " + std::to_string(index) + " out of range (size: " + std::to_string(size_) + ")");
         }
 
@@ -412,9 +424,11 @@ public:
         
         // Only mark GPU as dirty if GPU exists
         if (is_on_gpu_) {
+            Logger::debug("at: Marking GPU as dirty for index={}", index);
             gpu_dirty_ = true; // Mark GPU as dirty
         }
 
+        Logger::debug("at: Returning value at index={}", index);
         return host_data[index];
     }
 
@@ -593,6 +607,24 @@ public:
     // ===== SLICING OPERATIONS =====
 
     /**
+     * @brief Internal structure for normalized slice parameters
+     * 
+     * This structure normalizes all slice parameters to ensure consistent
+     * and safe handling of slicing operations.
+     */
+    struct NormalizedSlice {
+        size_t start;      // Normalized start index (always >= 0 and < size)
+        size_t stop;       // Normalized stop index (always >= 0 and <= size)
+        int step;          // Step size (can be positive or negative)
+        bool is_reverse;   // True if step < 0
+        
+        NormalizedSlice(size_t s, size_t st, int stp, bool rev)
+            : start(s), stop(st), step(stp), is_reverse(rev) {}
+    };
+
+public:
+
+    /**
      * @brief Create a slice of the vector
      * @param start Starting index (inclusive)
      * @param stop Ending index (exclusive)
@@ -607,70 +639,39 @@ public:
      * - slice(0, 10, 2) → elements [0, 2, 4, 6, 8]
      * - slice(5, 0, -1) → elements [5, 4, 3, 2, 1] (reverse)
      */
-    caVector<T> slice(size_t start, size_t stop, size_t step = 1) const {
-        // Validate parameters
-        if (step == 0) {
-            throw std::invalid_argument("caVector::slice: step cannot be zero");
-        }
-
-        // Handle negative indices (Python-style)
-        if (start >= size_) start = size_;
-        if (stop > size_) stop = size_;
-
-        // Handle reverse slicing
-        if (step < 0) {
-            if (start >= size_) start = size_ - 1;
-            if (stop > size_) stop = size_;
-            if (start < stop) {
-                // Swap start and stop for reverse slicing
-                std::swap(start, stop);
-            }
-        }
-
-        // Calculate slice size
-        size_t slice_size = 0;
-        if (step > 0) {
-            if (start < stop) {
-                slice_size = (stop - start + step - 1) / step;
-            }
-        } else {
-            if (start > stop) {
-                slice_size = (start - stop - step - 1) / (-step);
-            }
-        }
-
+    caVector<T> slice(int start, int stop, int step = 1) const {
+        Logger::debug("slice: Called with start={} stop={} step={}", start, stop, step);
+        
+        // Use the new robust slicing system
+        NormalizedSlice normalized = normalize_slice(start, stop, step);
+        size_t slice_size = calculate_slice_size(normalized);
+        
+        Logger::debug("slice: Calculated slice_size={}", slice_size);
+        
         if (slice_size == 0) {
             // Return empty vector
-            return caVector<T>(0, [](T*, size_t, const std::vector<double>&) {}, {});
+            Logger::debug("slice: Returning empty vector");
+            caVector<T> result(1, [](T*, size_t, const std::vector<double>&) {}, {});
+            result.size_ = 0;
+            result.host_data.clear();
+            return result;
         }
-
-        // Create new vector with slice size
-        caVector<T> result(slice_size, [](T*, size_t, const std::vector<double>&) {}, {});
-
-        // Copy data from slice
-        size_t src_idx = start;
-        size_t dst_idx = 0;
-
-        if (step > 0) {
-            // Forward slicing
-            while (src_idx < stop && dst_idx < slice_size) {
-                result.host_data[dst_idx] = host_data[src_idx];
-                src_idx += step;
-                dst_idx++;
+        
+        // Create result vector with proper size
+        Logger::debug("slice: Creating result vector with size={}", slice_size);
+        caVector<T> result(slice_size, [](T* data, size_t size, const std::vector<double>&) {
+            // Initialize with zeros to ensure proper size
+            for (size_t i = 0; i < size; ++i) {
+                data[i] = T(0);
             }
-        } else {
-            // Reverse slicing
-            while (src_idx > stop && dst_idx < slice_size) {
-                result.host_data[dst_idx] = host_data[src_idx];
-                src_idx += step;  // step is negative
-                dst_idx++;
-            }
-        }
-
-        // Ensure the result vector has the correct size
-        result.size_ = dst_idx;
-        result.host_data.resize(dst_idx);
-
+        }, {});
+        
+        // Copy data using the helper method
+        copy_slice_data(normalized, result);
+        
+        Logger::debug("slice: Completed - result.size_={} result.host_data.size()={}", 
+                     result.size_, result.host_data.size());
+        
         return result;
     }
 
@@ -700,11 +701,14 @@ public:
         , init_function(other.init_function)
         , init_params(other.init_params) {
 
+        Logger::debug("copy constructor: Creating copy of vector with size={}", size_);
+        
         // Copy HOST data
         host_data = other.host_data;
 
         // Note: GPU data is not copied (starts fresh on HOST)
         // Dirty flags are reset for the new copy
+        Logger::debug("copy constructor: Copy completed - host_data.size()={}", host_data.size());
     }
 
     /**
@@ -714,6 +718,8 @@ public:
      */
     caVector& operator=(const caVector& other) {
         if (this != &other) {
+            Logger::debug("copy assignment: Assigning vector with size={} to existing vector", other.size_);
+            
             size_ = other.size_;
             is_on_gpu_ = false;  // Reset to HOST
             host_dirty_ = false;  // Reset dirty flags
@@ -726,6 +732,10 @@ public:
 
             // Reset GPU buffer (will be reallocated when needed)
             gpu_buffer.reset();
+            
+            Logger::debug("copy assignment: Assignment completed - host_data.size()={}", host_data.size());
+        } else {
+            Logger::debug("copy assignment: Self-assignment detected, no action taken");
         }
         return *this;
     }
@@ -774,6 +784,134 @@ public:
             other.gpu_dirty_ = false;
         }
         return *this;
+    }
+
+    // ===== SLICING HELPER METHODS IMPLEMENTATION =====
+
+    NormalizedSlice normalize_slice(int start, int stop, int step) const {
+        Logger::debug("normalize_slice: Input - start={} stop={} step={} size_={}", start, stop, step, size_);
+        
+        // Validate step
+        if (step == 0) {
+            throw std::invalid_argument("caVector::normalize_slice: step cannot be zero");
+        }
+        
+        bool is_reverse = (step < 0);
+        
+        // Normalize start index
+        size_t norm_start;
+        if (start < 0) {
+            norm_start = size_ + start;  // Python: -1 means last element
+        } else {
+            norm_start = static_cast<size_t>(start);
+        }
+        
+        // Clamp start to valid range
+        if (norm_start >= size_) {
+            norm_start = is_reverse ? size_ - 1 : size_;
+        }
+        
+        // Normalize stop index
+        size_t norm_stop;
+        if (stop < 0) {
+            if (is_reverse && stop == -1) {
+                // Special case: v[::-1] - keep as size_t max to indicate "before index 0"
+                norm_stop = SIZE_MAX;
+                Logger::debug("normalize_slice: Special case v[::-1] detected - stop=SIZE_MAX");
+            } else {
+                norm_stop = size_ + stop;  // Python: -1 means last element
+            }
+        } else {
+            norm_stop = static_cast<size_t>(stop);
+        }
+        
+        // Clamp stop to valid range, but preserve SIZE_MAX for special case
+        if (norm_stop != SIZE_MAX && norm_stop > size_) {
+            norm_stop = size_;
+        }
+        
+        Logger::debug("normalize_slice: Output - start={} stop={} step={} is_reverse={}", 
+                     norm_start, norm_stop, step, is_reverse);
+        
+        return NormalizedSlice(norm_start, norm_stop, step, is_reverse);
+    }
+
+    size_t calculate_slice_size(const NormalizedSlice& slice) const {
+        Logger::debug("calculate_slice_size: Input - start={} stop={} step={} is_reverse={}", 
+                     slice.start, slice.stop, slice.step, slice.is_reverse);
+        
+        size_t slice_size = 0;
+        
+        if (!slice.is_reverse) {
+            // Forward slicing
+            if (slice.start < slice.stop) {
+                slice_size = (slice.stop - slice.start + slice.step - 1) / slice.step;
+                Logger::debug("calculate_slice_size: Forward - size = ({} - {} + {} - 1) / {} = {}", 
+                             slice.stop, slice.start, slice.step, slice.step, slice_size);
+            }
+        } else {
+            // Reverse slicing
+            if (slice.stop == SIZE_MAX) {
+                // Special case: v[::-1] - reverse entire vector
+                slice_size = slice.start + 1;
+                Logger::debug("calculate_slice_size: Special case v[::-1] - size = {} + 1 = {}", 
+                             slice.start, slice_size);
+            } else if (slice.start >= slice.stop) {
+                // For reverse slicing, start should be >= stop to have elements
+                slice_size = (slice.start - slice.stop + (-slice.step) - 1) / (-slice.step);
+                Logger::debug("calculate_slice_size: Reverse - size = ({} - {} + {} - 1) / {} = {}", 
+                             slice.start, slice.stop, -slice.step, -slice.step, slice_size);
+            }
+        }
+        
+        Logger::debug("calculate_slice_size: Output - slice_size={}", slice_size);
+        return slice_size;
+    }
+
+    void copy_slice_data(const NormalizedSlice& slice, caVector<T>& result) const {
+        Logger::debug("copy_slice_data: Starting copy - start={} stop={} step={} is_reverse={}", 
+                     slice.start, slice.stop, slice.step, slice.is_reverse);
+        
+        size_t src_idx = slice.start;
+        size_t dst_idx = 0;
+        
+        if (!slice.is_reverse) {
+            // Forward slicing
+            Logger::debug("copy_slice_data: Forward loop - src_idx < {} && dst_idx < {}", slice.stop, result.size());
+            while (src_idx < slice.stop && dst_idx < result.size()) {
+                result.host_data[dst_idx] = host_data[src_idx];
+                Logger::debug("copy_slice_data: Copied [{}] = {} to result[{}]", src_idx, host_data[src_idx], dst_idx);
+                src_idx += slice.step;
+                dst_idx++;
+            }
+        } else {
+            // Reverse slicing
+            if (slice.stop == SIZE_MAX) {
+                // Special case: v[::-1] - reverse entire vector
+                Logger::debug("copy_slice_data: Special case v[::-1] loop - src_idx >= 0 && dst_idx < {}", result.size());
+                while (src_idx >= 0 && dst_idx < result.size()) {
+                    result.host_data[dst_idx] = host_data[src_idx];
+                    Logger::debug("copy_slice_data: Copied [{}] = {} to result[{}]", src_idx, host_data[src_idx], dst_idx);
+                    src_idx += slice.step;  // step is negative
+                    dst_idx++;
+                }
+            } else {
+                // Normal reverse slicing
+                Logger::debug("copy_slice_data: Normal reverse loop - src_idx > {} && dst_idx < {}", slice.stop, result.size());
+                while (src_idx > slice.stop && dst_idx < result.size()) {
+                    result.host_data[dst_idx] = host_data[src_idx];
+                    Logger::debug("copy_slice_data: Copied [{}] = {} to result[{}]", src_idx, host_data[src_idx], dst_idx);
+                    src_idx += slice.step;  // step is negative
+                    dst_idx++;
+                }
+            }
+        }
+        
+        Logger::debug("copy_slice_data: Copy completed - final src_idx={} dst_idx={}", src_idx, dst_idx);
+        
+        // Update result size to actual copied elements
+        result.size_ = dst_idx;
+        result.host_data.resize(dst_idx);
     }
 };
 
