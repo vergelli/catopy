@@ -26,10 +26,32 @@ void bind_data_structures(py::module_& m) {
         .def("print_info", &caVector<double>::print_info)
         .def("get_memory_info", &caVector<double>::get_memory_info)
         .def("get_init_params", &caVector<double>::get_init_params)
+        .def("copy", &caVector<double>::copy, "Create a deep copy of the vector")
         .def("__len__", &caVector<double>::size)
         .def("__getitem__", [](const caVector<double>& vec, size_t index) {
             return vec[index];
         }, py::arg("index"), "Get element at specified index")
+        .def("__getitem__", [](const caVector<double>& vec, py::slice slice) {
+            // Parse Python slice to get start, stop, step
+            py::ssize_t start, stop, step, slice_length;
+            if (!slice.compute(vec.size(), &start, &stop, &step, &slice_length)) {
+                throw py::error_already_set();
+            }
+
+            Logger::debug("Python slice: start={} stop={} step={} slice_length={}", start, stop, step, slice_length);
+
+            // Special case: v[::-1] - detect when Python passes v[4:4:-1] instead of v[4:-1:-1]
+            if (step < 0 && start == vec.size() - 1 && stop == start) {
+                // This is likely v[::-1], force stop to -1
+                stop = -1;
+                Logger::debug("Detected v[::-1] pattern, forcing stop=-1");
+            }
+
+            Logger::debug("Final slice parameters: start={} stop={} step={}", start, stop, step);
+
+            // Call "our" slice method xD
+            return vec.slice(start, stop, step);
+        }, py::arg("slice"), "Get slice of vector using Python slice syntax")
         .def("__setitem__", [](caVector<double>& vec, size_t index, double value) {
             vec[index] = value;
         }, py::arg("index"), py::arg("value"), "Set element at specified index")
