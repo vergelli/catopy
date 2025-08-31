@@ -557,7 +557,7 @@ public:
     }
 
     /**
-     * @brief Smart string representation like numpy
+     * @brief Smart string representation
      * @return String representation of the vector
      */
     std::string smart_string() const {
@@ -568,6 +568,102 @@ public:
             std::string last = tail_string(5);
             return first + " ... " + last + ", size=" + std::to_string(size_);
         }
+    }
+
+    // ===== SLICING OPERATIONS =====
+
+    /**
+     * @brief Create a slice of the vector
+     * @param start Starting index (inclusive)
+     * @param stop Ending index (exclusive)
+     * @param step Step size (default: 1)
+     * @return New caVector containing the sliced data
+     * 
+     * This method creates a new vector with data from the specified range.
+     * The new vector is completely independent (deep copy).
+     * 
+     * Examples:
+     * - slice(1, 5) → elements [1, 2, 3, 4]
+     * - slice(0, 10, 2) → elements [0, 2, 4, 6, 8]
+     * - slice(5, 0, -1) → elements [5, 4, 3, 2, 1] (reverse)
+     */
+    caVector<T> slice(size_t start, size_t stop, size_t step = 1) const {
+        // Validate parameters
+        if (step == 0) {
+            throw std::invalid_argument("caVector::slice: step cannot be zero");
+        }
+
+        // Handle negative indices (Python-style)
+        if (start >= size_) start = size_;
+        if (stop > size_) stop = size_;
+
+        // Handle reverse slicing
+        if (step < 0) {
+            if (start >= size_) start = size_ - 1;
+            if (stop > size_) stop = size_;
+            if (start < stop) {
+                // Swap start and stop for reverse slicing
+                std::swap(start, stop);
+            }
+        }
+
+        // Calculate slice size
+        size_t slice_size = 0;
+        if (step > 0) {
+            if (start < stop) {
+                slice_size = (stop - start + step - 1) / step;
+            }
+        } else {
+            if (start > stop) {
+                slice_size = (start - stop - step - 1) / (-step);
+            }
+        }
+
+        if (slice_size == 0) {
+            // Return empty vector
+            return caVector<T>(0, [](T*, size_t, const std::vector<double>&) {}, {});
+        }
+
+        // Create new vector with slice size
+        caVector<T> result(slice_size, [](T*, size_t, const std::vector<double>&) {}, {});
+
+        // Copy data from slice
+        size_t src_idx = start;
+        size_t dst_idx = 0;
+
+        if (step > 0) {
+            // Forward slicing
+            while (src_idx < stop && dst_idx < slice_size) {
+                result.host_data[dst_idx] = host_data[src_idx];
+                src_idx += step;
+                dst_idx++;
+            }
+        } else {
+            // Reverse slicing
+            while (src_idx > stop && dst_idx < slice_size) {
+                result.host_data[dst_idx] = host_data[src_idx];
+                src_idx += step;  // step is negative
+                dst_idx++;
+            }
+        }
+
+        // Ensure the result vector has the correct size
+        result.size_ = dst_idx;
+        result.host_data.resize(dst_idx);
+
+        return result;
+    }
+
+    /**
+     * @brief Create a slice using a range (start:stop)
+     * @param range Pair of start and stop indices
+     * @return New caVector containing the sliced data
+     * 
+     * This is a convenience method for common slicing operations.
+     * Equivalent to slice(range.first, range.second, 1)
+     */
+    caVector<T> slice(const std::pair<size_t, size_t>& range) const {
+        return slice(range.first, range.second, 1);
     }
 
     // ===== COPY CONTROL =====
