@@ -30,6 +30,16 @@ void bind_data_structures(py::module_& m) {
         .def("__getitem__", [](const caVector<double>& vec, size_t index) {
             return vec[index];
         }, py::arg("index"), "Get element at specified index")
+        .def("__getitem__", [](const caVector<double>& vec, py::slice slice) {
+            // Parse Python slice to get start, stop, step
+            size_t start, stop, step, slice_length;
+            if (!slice.compute(vec.size(), &start, &stop, &step, &slice_length)) {
+                throw py::error_already_set();
+            }
+
+            // Call "our" slice method xD
+            return vec.slice(start, stop, step);
+        }, py::arg("slice"), "Get slice of vector using Python slice syntax")
         .def("__setitem__", [](caVector<double>& vec, size_t index, double value) {
             vec[index] = value;
         }, py::arg("index"), py::arg("value"), "Set element at specified index")
