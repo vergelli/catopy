@@ -1,6 +1,6 @@
 # Catopy
 
-![Catopy project banner](docs/assets/banner_2.png)
+![Catopy project banner](docs/assets/banner.png)
 
 
 A Python library for zippy tensor operations on CUDA devices.
