@@ -28,7 +28,7 @@ class TestIndexingOperators:
         assert v[4] == 3.1415, "Last element should be accessible"
         assert v[2] == 3.1415, "Middle element should be accessible"
         
-        print("✅ Basic getitem works correctly")
+        print(" Basic getitem works correctly")
     
     def test_basic_setitem(self):
         """Test basic setitem functionality."""
@@ -48,7 +48,7 @@ class TestIndexingOperators:
         assert v[1] == 3.1415, "Unmodified element should remain unchanged"
         assert v[3] == 3.1415, "Unmodified element should remain unchanged"
         
-        print("✅ Basic setitem works correctly")
+        print(" Basic setitem works correctly")
     
     def test_bounds_checking_getitem(self):
         """Test bounds checking in getitem."""
@@ -67,7 +67,7 @@ class TestIndexingOperators:
         with pytest.raises(IndexError):
             v[100]  # Way out of bounds
         
-        print("✅ Bounds checking works correctly in getitem")
+        print(" Bounds checking works correctly in getitem")
     
     def test_bounds_checking_setitem(self):
         """Test bounds checking in setitem."""
@@ -86,7 +86,7 @@ class TestIndexingOperators:
         with pytest.raises(IndexError):
             v[100] = 999.0  # Way out of bounds
         
-        print("✅ Bounds checking works correctly in setitem")
+        print(" Bounds checking works correctly in setitem")
     
     def test_at_method_bounds_checking(self):
         """Test at() method with bounds checking."""
@@ -103,7 +103,7 @@ class TestIndexingOperators:
             v.at(5)
         assert "index 5 out of range" in str(exc_info.value), "Error message should be descriptive"
         
-        print("✅ at() method bounds checking works correctly")
+        print(" at() method bounds checking works correctly")
     
     def test_at_method_modification(self):
         """Test at() method for modification."""
@@ -126,7 +126,7 @@ class TestIndexingOperators:
         assert v[2] == 888.0, "Regular indexing should reflect modifications"
         assert v[4] == 777.0, "Regular indexing should reflect modifications"
         
-        print("✅ at() method modification works correctly")
+        print(" at() method modification works correctly")
     
     def test_data_consistency_after_modifications(self):
         """Test that data remains consistent after modifications."""
@@ -154,7 +154,7 @@ class TestIndexingOperators:
             if i not in modifications:
                 assert v[i] == 1.0, f"Unmodified element {i} should remain 1.0"
         
-        print("✅ Data consistency maintained after modifications")
+        print(" Data consistency maintained after modifications")
     
     def test_python_iteration_protocol(self):
         """Test that caVector works with Python iteration protocols."""
@@ -174,7 +174,7 @@ class TestIndexingOperators:
         doubled = [x * 2 for x in v]
         assert doubled == [6.283, 6.283, 6.283, 6.283, 6.283], "List comprehension should work"
         
-        print("✅ Python iteration protocols work correctly")
+        print(" Python iteration protocols work correctly")
     
     def test_conversion_to_python_types(self):
         """Test conversion to Python types."""
@@ -197,7 +197,7 @@ class TestIndexingOperators:
         assert isinstance(v_set, set), "Should convert to set"
         assert v_set == {3.1415}, "Set should contain unique values"
         
-        print("✅ Conversion to Python types works correctly")
+        print(" Conversion to Python types works correctly")
     
     def test_modification_and_iteration(self):
         """Test that modifications work correctly with iteration."""
@@ -220,7 +220,7 @@ class TestIndexingOperators:
         expected_squared = [100.0, 1.0, 900.0, 1.0, 2500.0]
         assert squared == expected_squared, "List comprehension should work with modified values"
         
-        print("✅ Modification and iteration work together correctly")
+        print(" Modification and iteration work together correctly")
     
     def test_edge_cases_indexing(self):
         """Test edge cases in indexing."""
@@ -241,7 +241,7 @@ class TestIndexingOperators:
         assert v2[0] == 100.0, "First element should be modifiable"
         assert v2[1] == 200.0, "Second element should be modifiable"
         
-        print("✅ Edge cases in indexing work correctly")
+        print(" Edge cases in indexing work correctly")
     
     def test_large_vector_indexing(self):
         """Test indexing with larger vectors."""
@@ -265,7 +265,7 @@ class TestIndexingOperators:
         assert v[500] == 888.0, "Middle element modification should work"
         assert v[999] == 777.0, "Last element modification should work"
         
-        print("✅ Large vector indexing works correctly")
+        print(" Large vector indexing works correctly")
     
     def test_different_initialization_patterns(self):
         """Test indexing with different initialization patterns."""
@@ -288,7 +288,7 @@ class TestIndexingOperators:
         # Sin values should be accessible
         assert -1.0 <= v3[0] <= 1.0, "Sin value should be in [-1,1] range"
         
-        print("✅ Indexing works with all initialization patterns")
+        print(" Indexing works with all initialization patterns")
     
     def test_error_messages(self):
         """Test that error messages are descriptive."""
@@ -312,9 +312,9 @@ class TestIndexingOperators:
         assert "index 5 out of range" in str(exc_info.value), "at() error should be descriptive"
         assert "size: 5" in str(exc_info.value), "at() error should show size"
         
-        print("✅ Error messages are descriptive")
+        print(" Error messages are descriptive")
 
 
 if __name__ == "__main__":
-    print("🚀 Running indexing operators tests...")
+    print(" Running indexing operators tests...")
     pytest.main([__file__, "-v"])

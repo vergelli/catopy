@@ -27,7 +27,7 @@ class TestErrorHandling:
             assert V.size() == 0
             print("Empty vector (size=0) created successfully")
         except Exception as e:
-            print(f"⚠️ Empty vector creation failed: {e}")
+            print(f" Empty vector creation failed: {e}")
         
         # Test with very large size
         try:
@@ -36,12 +36,12 @@ class TestErrorHandling:
             assert V.size() == 100000
             print("Very large vector (size=100000) created successfully")
         except Exception as e:
-            print(f"⚠️ Very large vector creation failed: {e}")
+            print(f" Very large vector creation failed: {e}")
         
         # Test with extremely large size (should fail gracefully)
         try:
             V = ca.vector(10000000, ca.zeros())
-            print(f"⚠️ Extremely large vector created (unexpected): size={V.size()}")
+            print(f" Extremely large vector created (unexpected): size={V.size()}")
         except Exception as e:
             print(f"Extremely large vector creation failed as expected: {e}")
     
@@ -55,19 +55,19 @@ class TestErrorHandling:
             assert V1.size() == 3
             print("constant(1e308) - Vector created successfully")
         except Exception as e:
-            print(f"⚠️ constant(1e308) failed: {e}")
+            print(f" constant(1e308) failed: {e}")
         
         try:
             V2 = ca.vector(3, ca.constant(-1e308))  # Very negative number
             assert V2.size() == 3
             print("constant(-1e308) - Vector created successfully")
         except Exception as e:
-            print(f"⚠️ constant(-1e308) failed: {e}")
+            print(f" constant(-1e308) failed: {e}")
         
         # Test arange with invalid step
         try:
             V3 = ca.vector(5, ca.arange(0, 10, 0))  # Zero step
-            print(f"⚠️ arange with zero step created (unexpected): {V3}")
+            print(f" arange with zero step created (unexpected): {V3}")
         except Exception as e:
             print(f"arange with zero step failed as expected: {e}")
     
@@ -81,7 +81,7 @@ class TestErrorHandling:
             assert V1.size() == 4
             print("mathematical('invalid_func') - Vector created (defaults to linear)")
         except Exception as e:
-            print(f"⚠️ mathematical('invalid_func') failed: {e}")
+            print(f" mathematical('invalid_func') failed: {e}")
         
         # Test with empty string
         try:
@@ -89,7 +89,7 @@ class TestErrorHandling:
             assert V2.size() == 3
             print("mathematical('') - Vector created (defaults to linear)")
         except Exception as e:
-            print(f"⚠️ mathematical('') failed: {e}")
+            print(f" mathematical('') failed: {e}")
     
     def test_random_functions_edge_cases(self):
         """Test random functions with edge cases."""
@@ -107,7 +107,7 @@ class TestErrorHandling:
             assert V3.size() == 3
             print("Random with negative seed works")
         except Exception as e:
-            print(f"⚠️ Random with negative seed failed: {e}")
+            print(f" Random with negative seed failed: {e}")
         
         # Test uniform with min > max
         try:
@@ -115,7 +115,7 @@ class TestErrorHandling:
             assert V4.size() == 3
             print("Uniform with min > max works (swaps values)")
         except Exception as e:
-            print(f"⚠️ Uniform with min > max failed: {e}")
+            print(f" Uniform with min > max failed: {e}")
     
     def test_sequence_edge_cases(self):
         """Test sequence function with edge cases."""
@@ -127,7 +127,7 @@ class TestErrorHandling:
             assert V1.size() == 5
             print("sequence(0, 0) - Vector created (all elements same)")
         except Exception as e:
-            print(f"⚠️ sequence(0, 0) failed: {e}")
+            print(f" sequence(0, 0) failed: {e}")
         
         # Test with very small step
         try:
@@ -135,7 +135,7 @@ class TestErrorHandling:
             assert V2.size() == 4
             print("sequence(0, 1e-10) - Vector created with tiny step")
         except Exception as e:
-            print(f"⚠️ sequence(0, 1e-10) failed: {e}")
+            print(f" sequence(0, 1e-10) failed: {e}")
         
         # Test with very large step
         try:
@@ -143,7 +143,7 @@ class TestErrorHandling:
             assert V3.size() == 3
             print("sequence(0, 1e10) - Vector created with huge step")
         except Exception as e:
-            print(f"⚠️ sequence(0, 1e10) failed: {e}")
+            print(f" sequence(0, 1e10) failed: {e}")
     
     def test_sine_edge_cases(self):
         """Test sine function with edge cases."""
@@ -155,7 +155,7 @@ class TestErrorHandling:
             assert V1.size() == 4
             print("sine(0, 1, 0) - Vector created (constant value)")
         except Exception as e:
-            print(f"⚠️ sine(0, 1, 0) failed: {e}")
+            print(f" sine(0, 1, 0) failed: {e}")
         
         # Test with zero amplitude
         try:
@@ -163,7 +163,7 @@ class TestErrorHandling:
             assert V2.size() == 3
             print("sine(1, 0, 0) - Vector created (all zeros)")
         except Exception as e:
-            print(f"⚠️ sine(1, 0, 0) failed: {e}")
+            print(f" sine(1, 0, 0) failed: {e}")
         
         # Test with very high frequency
         try:
@@ -171,7 +171,7 @@ class TestErrorHandling:
             assert V3.size() == 5
             print("sine(1e6, 1, 0) - Vector created with very high frequency")
         except Exception as e:
-            print(f"⚠️ sine(1e6, 1, 0) failed: {e}")
+            print(f" sine(1e6, 1, 0) failed: {e}")
 
 
 class TestBoundaryConditions:
@@ -264,5 +264,5 @@ class TestStressConditions:
 
 
 if __name__ == "__main__":
-    print("🚀 Running error handling and edge case tests...")
+    print(" Running error handling and edge case tests...")
     pytest.main([__file__, "-v"])
