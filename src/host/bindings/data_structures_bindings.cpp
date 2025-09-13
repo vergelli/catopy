@@ -2,6 +2,7 @@
 #include <pybind11/stl.h>
 #include <pybind11/functional.h>
 #include "../../../include/core/caVector.cuh"
+#include "operations/vector_operations.hpp"
 #include <cmath>
 #include <cstdlib>
 #include <ctime>
@@ -65,7 +66,38 @@ void bind_data_structures(py::module_& m) {
         .def("head_string", &caVector<double>::head_string)
         .def("tail_string", &caVector<double>::tail_string)
         .def("smart_string", &caVector<double>::smart_string)
-        .def("at", static_cast<double&(caVector<double>::*)(size_t)>(&caVector<double>::at), py::arg("index"), "Get element at index with bounds checking");
+        .def("at", static_cast<double&(caVector<double>::*)(size_t)>(&caVector<double>::at), py::arg("index"), "Get element at index with bounds checking")
+        // Vector operations operators
+        .def("__mul__", [](const caVector<double>& a, const caVector<double>& b) {
+            Logger::debug("Python __mul__ called with vectors of size {} and {}", a.size(), b.size());
+            return cato::bindings::vecmul(a, b);
+        }, py::arg("other"), "Element-wise multiplication with another vector")
+        .def("__add__", [](const caVector<double>& a, const caVector<double>& b) {
+            Logger::debug("Python __add__ called with vectors of size {} and {}", a.size(), b.size());
+            return cato::bindings::vecadd(a, b);
+        }, py::arg("other"), "Element-wise addition with another vector")
+        .def("__sub__", [](const caVector<double>& a, const caVector<double>& b) {
+            Logger::debug("Python __sub__ called with vectors of size {} and {}", a.size(), b.size());
+            return cato::bindings::vecsub(a, b);
+        }, py::arg("other"), "Element-wise subtraction with another vector")
+        // Scalar operations
+        .def("__mul__", [](const caVector<double>& a, double scalar) {
+            Logger::debug("Python __mul__ called with vector of size {} and scalar {}", a.size(), scalar);
+            return cato::bindings::vecmul_scalar(a, scalar);
+        }, py::arg("scalar"), "Element-wise multiplication with scalar")
+        .def("__add__", [](const caVector<double>& a, double scalar) {
+            Logger::debug("Python __add__ called with vector of size {} and scalar {}", a.size(), scalar);
+            return cato::bindings::vecadd_scalar(a, scalar);
+        }, py::arg("scalar"), "Element-wise addition with scalar")
+        // Reverse operations (scalar * vector)
+        .def("__rmul__", [](const caVector<double>& a, double scalar) {
+            Logger::debug("Python __rmul__ called with scalar {} and vector of size {}", scalar, a.size());
+            return cato::bindings::vecmul_scalar(a, scalar);
+        }, py::arg("scalar"), "Element-wise multiplication with scalar (reverse)")
+        .def("__radd__", [](const caVector<double>& a, double scalar) {
+            Logger::debug("Python __radd__ called with scalar {} and vector of size {}", scalar, a.size());
+            return cato::bindings::vecadd_scalar(a, scalar);
+        }, py::arg("scalar"), "Element-wise addition with scalar (reverse)");
 
     //& ===== INITIALIZATION FUNCTIONS =====
     //& These return std::function objects that can be used directly
