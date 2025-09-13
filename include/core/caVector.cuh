@@ -474,6 +474,18 @@ public:
      * @return true if GPU data is dirty, false if clean
      */
     bool is_gpu_dirty() const { return gpu_dirty_; }
+    
+    /**
+     * @brief Mark GPU data as dirty (modified)
+     * 
+     * This method should be called after GPU operations that modify data
+     * to ensure proper synchronization when needed.
+     */
+    void mark_gpu_dirty() { 
+        if (is_on_gpu_) {
+            gpu_dirty_ = true;
+        }
+    }
 
     /**
      * @brief Get initialization parameters

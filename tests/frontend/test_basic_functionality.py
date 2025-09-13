@@ -184,16 +184,16 @@ class TestBasicFunctionality:
             V = ca.vector(0, ca.zeros())
             print(f"Empty vector created: {V}")
         except Exception as e:
-            print(f"⚠️ Empty vector creation failed (expected): {e}")
+            print(f" Empty vector creation failed (expected): {e}")
         
         # Test with very large size (should handle gracefully)
         try:
             V = ca.vector(10000, ca.ones())
             print(f"Large vector created: size={V.size()}")
         except Exception as e:
-            print(f"⚠️ Large vector creation failed: {e}")
+            print(f" Large vector creation failed: {e}")
 
 
 if __name__ == "__main__":
-    print("🚀 Running basic functionality tests...")
+    print(" Running basic functionality tests...")
     pytest.main([__file__, "-v"])

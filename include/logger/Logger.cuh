@@ -146,7 +146,7 @@ public:
      */
     static void cuda_start(const char* operation) {
         if (is_initialized() && is_logging_enabled()) {
-            logger_->debug("🚀 CUDA {} START", operation);
+            logger_->debug(" CUDA {} START", operation);
         }
     }
 
@@ -245,25 +245,25 @@ inline void Logger::initialize(Level level, bool log_to_file, const std::string&
 
         // Create logger with multiple sinks
         logger_ = std::make_shared<spdlog::logger>("catopy", sinks.begin(), sinks.end());
-        
+
         // Set log level
         logger_->set_level(static_cast<spdlog::level::level_enum>(level));
-        
+
         // Set as default logger
         spdlog::set_default_logger(logger_);
-        
+
         initialized_ = true;
-        
+
         // Por defecto, logging está deshabilitado (modo silencioso)
         logging_enabled_ = false;
-        
+
         // Solo log de inicialización si está habilitado
         if (logging_enabled_) {
-            logger_->info("🚀 Logger initialized successfully (level: {}, file logging: {})", 
+            logger_->info("Logger initialized successfully (level: {}, file logging: {})", 
                          spdlog::level::to_string_view(static_cast<spdlog::level::level_enum>(level)),
                          log_to_file ? "enabled" : "disabled");
         }
-                     
+
     } catch (const std::exception& e) {
         std::cerr << "Error initializing logger: " << e.what() << std::endl;
         // Fallback to basic console logging

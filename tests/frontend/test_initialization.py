@@ -305,7 +305,7 @@ class TestInitializationEdgeCases:
             assert V.size() == 0
             print(f"Empty vector created: {V}")
         except Exception as e:
-            print(f"⚠️ Empty vector creation failed: {e}")
+            print(f" Empty vector creation failed: {e}")
     
     def test_single_element_vector(self):
         """Test creating vectors with size 1."""
@@ -327,7 +327,7 @@ class TestInitializationEdgeCases:
             assert V.size() == 1000
             print(f"Large vector created: size={V.size()}")
         except Exception as e:
-            print(f"⚠️ Large vector creation failed: {e}")
+            print(f" Large vector creation failed: {e}")
     
     def test_negative_parameters(self):
         """Test functions with negative parameters where applicable."""
@@ -345,5 +345,5 @@ class TestInitializationEdgeCases:
 
 
 if __name__ == "__main__":
-    print("🚀 Running initialization function tests...")
+    print(" Running initialization function tests...")
     pytest.main([__file__, "-v"])
