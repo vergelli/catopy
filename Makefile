@@ -38,6 +38,7 @@ help:
 	@echo "$(BOLD)$(YELLOW)  config$(RESET)   - Configura el proyecto con meson (solo primera vez o cambios de config)"
 	@echo "$(BOLD)$(YELLOW)  build$(RESET)    - Compila el código con ninja (después de cambios de código)"
 	@echo "$(BOLD)$(YELLOW)  install$(RESET)  - Instala el módulo compilado con uv pip"
+	@echo "$(BOLD)$(YELLOW)  install-all$(RESET) - Instala todas las dependencias opcionales (test, dev, cuda)"
 	@echo "$(BOLD)$(YELLOW)  test$(RESET)     - Prueba el módulo instalado"
 	@echo ""
 	@echo "$(BOLD)$(CYAN)Testing por Tecnología:$(RESET)"
@@ -54,6 +55,12 @@ help:
 	@echo "$(BOLD)$(YELLOW)  test-fast$(RESET) - Tests rápidos (solo frontend)"
 	@echo "$(BOLD)$(YELLOW)  test-watch$(RESET) - Tests en modo watch"
 	@echo "$(BOLD)$(YELLOW)  test-file$(RESET) - Tests de archivo específico"
+	@echo ""
+	@echo "$(BOLD)$(CYAN)Benchmarking:$(RESET)"
+	@echo "$(BOLD)$(YELLOW)  benchmark$(RESET) - Ejecuta todos los benchmarks"
+	@echo "$(BOLD)$(YELLOW)  benchmark-operations$(RESET) - Benchmarks de operaciones básicas"
+	@echo "$(BOLD)$(YELLOW)  benchmark-mathematical$(RESET) - Benchmarks de operaciones matemáticas"
+	@echo "$(BOLD)$(YELLOW)  benchmark-clean$(RESET) - Limpia outputs de benchmarks"
 	@echo ""
 	@echo "$(BOLD)$(CYAN)Profiling:$(RESET)"
 	@echo "$(BOLD)$(YELLOW)  profile-quick$(RESET) - Profiling rápido (operaciones básicas)"
@@ -77,15 +84,16 @@ help:
 	@echo ""
 	@echo "$(BOLD)$(BLUE)Flujo típico de desarrollo:$(RESET)"
 	@echo "  1. Primera vez en el sistema → make install-dependencies"
-	@echo "  2. Cambias código fuente → make build"
-	@echo "  3. Cambias configuración → make config"
-	@echo "  4. Quieres probar → make install"
-	@echo "  5. Ejecutar tests → make test-frontend"
-	@echo "  6. Todo desde cero → make all"
-	@echo "  7. Todo + tests → make test-all"
-	@echo "  8. Profiling → make profile-memory-transfer"
-	@echo "  9. Profiling + Nsight → make profile-auto-open"
-	@echo "  10. Desarrollo completo → make dev-profile"
+	@echo "  2. Instalar dependencias opcionales → make install-all"
+	@echo "  3. Cambias código fuente → make build"
+	@echo "  4. Cambias configuración → make config"
+	@echo "  5. Quieres probar → make install"
+	@echo "  6. Ejecutar tests → make test-frontend"
+	@echo "  7. Todo desde cero → make all"
+	@echo "  8. Todo + tests → make test-all"
+	@echo "  9. Profiling → make profile-memory-transfer"
+	@echo "  10. Profiling + Nsight → make profile-auto-open"
+	@echo "  11. Desarrollo completo → make dev-profile"
 	@echo ""
 
 #* Comando principal - ejecuta todo el flujo
@@ -105,10 +113,10 @@ test-all: config build install test-frontend test-backend test-profiling
 #* Instala todas las dependencias del sistema necesarias para el proyecto
 install-dependencies:
 	@echo "$(BOLD)$(BLUE)Instalando dependencias del sistema...$(RESET)"
-	@echo "$(CYAN)Este paso instala spdlog, CUDA y otras dependencias del sistema$(RESET)"
+	@echo "$(CYAN)Este paso instala spdlog, Google Test, CUDA y otras dependencias del sistema$(RESET)"
 	@echo "$(YELLOW)Se requiere sudo para instalar paquetes del sistema$(RESET)"
 	@sudo apt update
-	@sudo apt install -y libspdlog-dev
+	@sudo apt install -y libspdlog-dev libgtest-dev libgmock-dev
 	@echo "$(BOLD)$(GREEN)Dependencias del sistema instaladas$(RESET)"
 	@echo "$(CYAN)Ahora puedes ejecutar 'make config' para configurar el proyecto$(RESET)"
 
@@ -145,6 +153,14 @@ install:
 	@$(VENV_ACTIVATE) && uv pip install .
 	@echo "$(BOLD)$(GREEN)Instalación completada$(RESET)"
 	@echo "$(CYAN)El módulo $(BOLD)$(PROJECT_NAME)$(RESET)$(CYAN) está disponible globalmente en tu entorno virtual$(RESET)"
+
+#* Instala todas las dependencias opcionales (test, dev, cuda)
+install-all:
+	@echo "$(BOLD)$(BLUE)Instalando todas las dependencias opcionales...$(RESET)"
+	@echo "$(CYAN)Esto incluye dependencias de test, desarrollo y CUDA$(RESET)"
+	@$(VENV_ACTIVATE) && uv pip install pytest pytest-cov pytest-xdist coverage numpy matplotlib pandas psutil
+	@echo "$(BOLD)$(GREEN)Todas las dependencias instaladas$(RESET)"
+	@echo "$(CYAN)Ahora puedes ejecutar tests, benchmarks y profiling$(RESET)"
 
 
 #& =============================================================================
@@ -222,13 +238,15 @@ info:
 #* 
 #* FLUJO DE DESARROLLO:
 #*   1. make install-dependencies → Solo la primera vez (instala spdlog, CUDA, etc.)
-#*   2. make config    → Solo la primera vez o cambios de configuración
-#*   3. make build     → Después de cada cambio de código
-#*   4. make install   → Para probar el módulo
-#*   5. make all       → Para hacer todo desde cero
+#*   2. make install-all → Instala dependencias opcionales (test, dev, cuda)
+#*   3. make config    → Solo la primera vez o cambios de configuración
+#*   4. make build     → Después de cada cambio de código
+#*   5. make install   → Para probar el módulo
+#*   6. make all       → Para hacer todo desde cero
 #
 #* CUÁNDO USAR CADA COMANDO:
 #*   - install-dependencies: Primera vez en el sistema o cambio de dependencias
+#*   - install-all: Primera vez o cuando quieres tests/benchmarks/profiling
 #*   - config: Cambias meson.build, pyproject.toml, o agregas/quitas archivos
 #*   - build:  Cambias código fuente (.cu, .cpp, .hpp, .cuh)
 #*   - install: Quieres probar el módulo en Python
@@ -237,6 +255,7 @@ info:
 #*   - Si build falla → Verifica que config se ejecutó correctamente
 #*   - Si install falla → Verifica que build se ejecutó correctamente
 #*   - Si hay errores de dependencias → Ejecuta make config
+#*   - Si tests/benchmarks fallan → Ejecuta make install-all
 #
 #* =============================================================================
 
@@ -354,8 +373,10 @@ test-frontend:
 
 #* Backend tests (C++/CUDA)
 test-backend:
-	@echo "$(BOLD)$(BLUE)Executing back-end unit tests (C++/CUDA)...$(RESET)"
-	@echo "$(BOLD)$(RED)NOPE, NOT Yet, I'm working on it$(RESET)"
+	@echo "$(BOLD)$(BLUE)Ejecutando tests backend (C++/CUDA)...$(RESET)"
+	@echo "$(CYAN)Compilando y ejecutando tests unitarios del KernelLaunchOptimizer$(RESET)"
+	@cd build && meson test test_kernel_launch_optimizer
+	@echo "$(BOLD)$(GREEN)Tests backend completados$(RESET)"
 
 #* Profiling tests (rendimiento Python)
 test-profiling:
@@ -381,7 +402,9 @@ test-cuda:
 #* Tests con reporte de cobertura
 test-coverage:
 	@echo "$(BOLD)$(BLUE)Ejecutando tests con cobertura...$(RESET)"
-	@$(VENV_ACTIVATE) && python -m pytest tests/frontend/ -v --cov=$(PROJECT_NAME) --cov-report=html --cov-report=term-missing
+	@echo "$(CYAN)Limpiando datos de cobertura previos...$(RESET)"
+	@$(VENV_ACTIVATE) && coverage erase
+	@$(VENV_ACTIVATE) && python -m pytest tests/frontend/ -v --cov=tests --cov-branch --cov-report=html --cov-report=term-missing --cov-config=.coveragerc
 	@echo "$(BOLD)$(GREEN)Reporte de cobertura generado$(RESET)"
 	@echo "$(CYAN)Abre htmlcov/index.html para ver el reporte completo$(RESET)"
 
@@ -412,8 +435,43 @@ test-file:
 test-all-organized: test-frontend test-backend test-profiling
 	@echo "$(BOLD)$(GREEN)Todos los tests organizados completados!$(RESET)"
 
+#& ===== BENCHMARK TARGETS =====
+.PHONY: benchmark benchmark-operations benchmark-mathematical benchmark-all benchmark-clean
+
+#* Run all benchmarks
+benchmark-all:
+	@echo "$(BOLD)$(BLUE)Ejecutando suite completa de benchmarks...$(RESET)"
+	@echo "$(CYAN)Esto incluye operaciones básicas, matemáticas y comparaciones con NumPy$(RESET)"
+	@$(VENV_ACTIVATE) && python tests/benchmarks/run_all_benchmarks.py
+	@echo "$(BOLD)$(GREEN)Benchmarks completados$(RESET)"
+
+#* Run basic operations benchmarks
+benchmark-operations:
+	@echo "$(BOLD)$(BLUE)Ejecutando benchmarks de operaciones básicas...$(RESET)"
+	@echo "$(CYAN)Comparando caVector vs NumPy vs PyTorch vs Python built-in$(RESET)"
+	@$(VENV_ACTIVATE) && python tests/benchmarks/benchmark_operations.py
+	@echo "$(BOLD)$(GREEN)Benchmarks de operaciones completados$(RESET)"
+
+#* Run mathematical operations benchmarks
+benchmark-mathematical:
+	@echo "$(BOLD)$(BLUE)Ejecutando benchmarks de operaciones matemáticas...$(RESET)"
+	@echo "$(CYAN)Comparando funciones trigonométricas, exponenciales y estadísticas$(RESET)"
+	@$(VENV_ACTIVATE) && python tests/benchmarks/benchmark_mathematical.py
+	@echo "$(BOLD)$(GREEN)Benchmarks matemáticos completados$(RESET)"
+
+#* Clean benchmark outputs
+benchmark-clean:
+	@echo "$(BOLD)$(YELLOW)Limpiando outputs de benchmarks...$(RESET)"
+	@rm -rf tests/benchmarks/output/
+	@rm -f benchmark_*.png benchmark_*.md
+	@echo "$(BOLD)$(GREEN)Outputs de benchmarks limpiados$(RESET)"
+
+#* Alias for benchmark-all
+benchmark: benchmark-all
+	@echo "$(CYAN)benchmark es un alias para benchmark-all$(RESET)"
+
 #& ===== DEVELOPMENT WORKFLOW =====
-.PHONY: dev-test dev-profile
+.PHONY: dev-test dev-profile dev-benchmark
 
 # Development testing workflow
 dev-test: build test-all
@@ -422,3 +480,7 @@ dev-test: build test-all
 # Development profiling workflow
 dev-profile: build profile-full profile-open
 	@echo "Development profiling completed!"
+
+# Development benchmarking workflow
+dev-benchmark: build benchmark-all
+	@echo "Development benchmarking completed!"
