@@ -1,31 +1,46 @@
 # Catopy
 
-![Catopy project banner](docs/assets/banner.png)
+![Catopy project banner](docs/assets/banner.jpg)
 
-A Python library for zippy tensor operations on CUDA devices. Born as a joke, but now I'm kinda serious about it
+A Python library for zippy tensor operations on CUDA devices.
+
+[![Status](https://img.shields.io/badge/status-WIP-orange)](#status)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](#requirements)
+[![CUDA](https://img.shields.io/badge/CUDA-12.0.140-brightgreen?logo=nvidia&logoColor=white)](#requirements)
+[![OS](https://img.shields.io/badge/OS-Linux-informational)](#requirements)
 
 ## Table of Contents
 - [Overview](#overview)
+- [Project intent](#project-intent)
 - [Status](#status)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [API at a Glance](#api-at-a-glance)
 - [Testing and Profiling](#testing-and-profiling)
 - [Current Limitations and Roadmap](#current-limitations-and-roadmap)
+- [Troubleshooting](#troubleshooting)
 - [License](#license)
 
 ## Overview
 
-Catopy is a Python library for high-performance tensor operations on CUDA-enabled devices. Right now, it’s in early development (WIP, very WIP), handling basic vector ops, but dreaming of full tensor support and all the fancy math stuff. Let’s see where this takes us 😆
+Catopy is a Python library for high-performance tensor operations on CUDA-enabled devices. Right now, it’s in early development (WIP, very WIP), handling basic vector ops only
+
+## Project intent
+
+_This project began as an educational/experimental playground. It does not intent to repleace any mature frameworks_
+
+Contributions that improve clarity, docs, and educational value are welcome! 💚
 
 ## Status
 
-**Early Development** - Core vector operations and memory management work, but it’s a **work in progress (WIP)**. The repo itself is a bit bare-bones (no fancy `LICENSE` or `docs/` yet), but we’re getting there..
+**Early Development** - Core vector operations and memory management work, but it’s a **work in progress (WIP)**.
 
 ## Requirements
 
 - **CUDA:** 12.0+ (tested on CUDA 12.0.140)
-- **GPU:** Compute Capability 8.0+ (e.g., NVIDIA Ampere, tested on `sm_80`)
+- **GPU:** CUDA-capable GPU, Compute Capability 8.0+ (tested on `sm_80`, Ampere for now.)
 - **Python:** 3.10+
 - **OS:** Linux (tested on Ubuntu 22.04)
 - **Tools:** `uv` (optional, but we love it), `meson`, `ninja`, and `make`
@@ -43,53 +58,79 @@ Clone the repo and let `make` work:
 ```bash
 git clone https://github.com/vergelli/catopy.git
 cd catopy
+
+# (recommended) create and activate a virtualenv
+python -m venv .venv
+source .venv/bin/activate
+
 make install-dependencies  # Installs system deps (needs sudo)
 make config               # Sets up Meson (run once or after config changes)
 make build                # Compiles the C++/CUDA code
-make install             # Installs the Python module with uv
+make install             # Installs the Python module with uv otherwise `pip install .` as usual.
 ```
 
 > **Note**: We use `uv` for speedy installs (`pip install uv` to get it). You can swap it for `pip`, `conda`, or `poetry` if you like. See [uv docs](https://github.com/astral-sh/uv) for more.
 
-### Future Plans
-The idea is to make it a PyPI package for easier installation, but lets see how it goes though 😅
-
 ## Quick Start
+
+#### Assign/access operations
 
 ```python
 import cato as ca
 
-# Create a vector with 1000 random values (normal dist, mean=0, std=1)
-v = ca.vector(1000, ca.normal(0, 1))
+# Create a vector with 1000 constant values
+v = ca.vector(1000, ca.constant(3.14))
 
 v[0] = 42.0
 print(v[0])  # Outputs: 42.0
 
 # If you ever need it for some reason.
-# It snot the main goal but its there.
+# It's not the main goal but it's there.
 v.ensure_on_gpu()
+
+# Enable debug logging if you want to inspect internals
+# This is very verbose so be warned.
+ca.logger(True)
 ```
 
-## Testing and Profiling
+#### Operations within vectors/scalars
 
-Catopy’s got some testing and profiling setup:
-- **Run tests**: `make test-frontend` for Python tests (Most of the test, literally), back-end tests are coming soon, probably....
-- **Profile performance**: Try `make profile-memory-transfer` to see how data moves between CPU and GPU. Use `make profile-auto-open` to fire up NVIDIA Nsight Systems and geek out on the results. (Check your nsys and nsys-ui apps for this one)
+Using normal distribution $\mathbf{v}_i \sim \mathcal{N}(\mu,\sigma^2)$ for example
 
-Run `make help` to see all the `make` commands we’ve got. It's on **Spanish** I KNOW.
+```python
+import cato as ca
 
-## Current Limitations and Roadmap
+ca.vector(5, ca.normal(10, 12))
 
-Catopy’s still a kitten, so it’s got some growing pains:
-- Only supports **1D vectors** (tensors are coming, maybe ...).
-- Just **basic operations** for now (fancy math like `+`, `-`, `*`, `/` **is on the way**).
-- **Synchronous transfers** (async streams, not yet..).
+A=ca.vector(1000000, ca.normal(10, 0.7))
+# A is : [8.762258,..., 9.626155], size=1000000
 
-### Planned Features
-- Full tensor support (2D and beyond).
-- Math ops  (matmuls, reductions, etc).
-- Async GPU transfers with CUDA streams.
-- Playing nice with ML frameworks like PyTorch or NumPy.
+B=ca.vector(1000000, ca.normal(2, 0.3))
+# B is : [2.210217,..., 2.046339], size=1000000
+
+A*B
+# Output: [19.366493,...,19.698373], size=1000000
+
+A*B*A*B*B
+# Output: [828.966325,...,794.032381], size=1000000
+
+A*0
+# Output: [0.000000,...,0.000000], size=1000000
+
+A-A
+# Output: [0.000000,...,0.000000], size=1000000
+
+A+B
+# Output: [10.972475,...,11.672494], size=1000000
+
+```
+
+
+## API at a Glance
+
+- Initialization: `zeros()`, `ones()`, `constant(c)`, `random(seed?)`, `uniform(a,b,seed?)`, `normal(μ,σ,seed?)`, `box_muller(μ,σ,seed?)`, `sequence(start, step)`, `arange(start, stop, step)`, `sine(freq, phase)`
+- Operations: `vecmul(a,b)`, `vecadd(a,b)`, `vecsub(a,b)`, `vecmul_scalar(a,s)`, `vecadd_scalar(a,s)`; Python operators: `*`, `+`, `-`
+- See the compact reference: [Vector initialization and ops](docs/VectorOperations.md)
 
 
 ## License
