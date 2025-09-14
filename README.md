@@ -20,9 +20,6 @@ A Python library for zippy tensor operations on CUDA devices.
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [API at a Glance](#api-at-a-glance)
-- [Testing and Profiling](#testing-and-profiling)
-- [Current Limitations and Roadmap](#current-limitations-and-roadmap)
-- [Troubleshooting](#troubleshooting)
 - [License](#license)
 
 ## Overview
